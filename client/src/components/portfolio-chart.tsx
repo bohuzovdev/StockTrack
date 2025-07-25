@@ -5,24 +5,59 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useState } from "react";
 import type { InvestmentWithCurrentData } from "@shared/schema";
 
-// Mock historical data - in a real app, this would come from the API
+// Generate chart data based on actual investment dates
 const generateHistoricalData = (investments: InvestmentWithCurrentData[]) => {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-  const data = [];
+  if (investments.length === 0) return [];
   
-  for (let i = 0; i < months.length; i++) {
-    const totalInvested = investments.reduce((sum, inv) => sum + inv.amount, 0);
-    const currentValue = investments.reduce((sum, inv) => sum + inv.currentValue, 0);
+  const data: { month: string; portfolio: number; sp500: number }[] = [];
+  const sortedInvestments = investments.sort((a, b) => 
+    new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime()
+  );
+  
+  let cumulativeInvested = 0;
+  let cumulativeValue = 0;
+  
+  // Group investments by month to show progression
+  const investmentsByMonth: { [key: string]: { label: string; investments: InvestmentWithCurrentData[]; date: Date } } = {};
+  
+  sortedInvestments.forEach(investment => {
+    const date = new Date(investment.purchaseDate);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const monthLabel = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
     
-    // Simulate historical progression
-    const progressionFactor = (i + 1) / months.length;
-    const portfolioValue = totalInvested + ((currentValue - totalInvested) * progressionFactor);
-    const sp500Value = totalInvested * (1 + (0.10 * progressionFactor)); // Simulate 10% S&P growth
+    if (!investmentsByMonth[monthKey]) {
+      investmentsByMonth[monthKey] = {
+        label: monthLabel,
+        investments: [],
+        date: date
+      };
+    }
+    investmentsByMonth[monthKey].investments.push(investment);
+  });
+  
+  // Create data points for each month with investments
+  Object.values(investmentsByMonth).forEach(monthData => {
+    // Add investments made in this month
+    monthData.investments.forEach((inv: InvestmentWithCurrentData) => {
+      cumulativeInvested += inv.amount;
+      cumulativeValue += inv.currentValue;
+    });
     
     data.push({
-      month: months[i],
-      portfolio: Math.round(portfolioValue),
-      sp500: Math.round(sp500Value),
+      month: monthData.label,
+      portfolio: Math.round(cumulativeValue),
+      sp500: Math.round(cumulativeInvested * 1.0), // S&P 500 baseline (no change for simplicity)
+    });
+  });
+  
+  // If only one data point, add a second point for better visualization
+  if (data.length === 1) {
+    const today = new Date();
+    const todayLabel = today.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    data.push({
+      month: todayLabel,
+      portfolio: data[0].portfolio,
+      sp500: data[0].sp500,
     });
   }
   
