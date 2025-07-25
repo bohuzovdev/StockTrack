@@ -92,7 +92,7 @@ export function AddInvestmentModal({ isOpen, onClose }: AddInvestmentModalProps)
           <DialogTitle>Add New Investment</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>
             <Label htmlFor="amount">Investment Amount (USD)</Label>
             <div className="relative mt-1">

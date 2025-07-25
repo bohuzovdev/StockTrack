@@ -24,6 +24,8 @@ export const marketData = pgTable("market_data", {
 export const insertInvestmentSchema = createInsertSchema(investments).omit({
   id: true,
   symbol: true, // Symbol is auto-set to SPY
+  purchasePrice: true, // Auto-set from current S&P 500 price
+  purchaseDate: true, // Auto-set to current date
   createdAt: true,
 });
 
