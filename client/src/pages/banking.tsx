@@ -1,22 +1,15 @@
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Sidebar } from "@/components/ui/sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { 
-  Wallet, 
   RefreshCw, 
-  AlertCircle, 
-  CheckCircle, 
   CreditCard, 
   TrendingUp, 
-  TrendingDown, 
-  Shield,
+  TrendingDown,
   ArrowUpRight,
   ArrowDownLeft,
   Calendar,
@@ -57,10 +50,6 @@ interface BankTransaction {
   counterIban?: string;
 }
 
-interface ConnectionForm {
-  token: string;
-}
-
 export default function Banking() {
   const [isConnected, setIsConnected] = useState(false);
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
@@ -72,8 +61,6 @@ export default function Banking() {
   const [savedToken, setSavedToken] = useState<string | null>(null);
   const [cryptoSupported, setCryptoSupported] = useState(false);
   const [balanceVisible, setBalanceVisible] = useState(true);
-
-  const form = useForm<ConnectionForm>();
 
   // Check crypto support and load saved token
   useEffect(() => {
@@ -197,29 +184,15 @@ export default function Banking() {
     }
   };
 
-  const onSubmit = async (data: ConnectionForm) => {
-    await testConnection(data.token);
-    if (isConnected) {
-      try {
-        await SecureStorage.setItem('monobank_token', data.token);
-        setSavedToken(data.token);
-      } catch (error) {
-        console.error('Failed to save token securely:', error);
-        setError('Token connected but failed to save securely. You may need to reconnect on page reload.');
-      }
-    }
-  };
-
   const disconnect = async () => {
     try {
-      SecureStorage.removeItem('monobank_token');
+      await SecureStorage.removeItem('monobank_token');
       setSavedToken(null);
       setIsConnected(false);
       setAccounts([]);
       setTransactions([]);
       setSelectedAccount(null);
       setError(null);
-      form.reset();
     } catch (error) {
       console.error('Failed to disconnect:', error);
     }
@@ -279,97 +252,29 @@ export default function Banking() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Banking</h1>
-        <p className="text-muted-foreground mt-2">
-          Connect your Monobank account to track expenses and manage your finances.
-        </p>
-      </div>
-
-      {/* Security Status */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-2">
-            <Shield className={`w-5 h-5 ${cryptoSupported ? 'text-green-500' : 'text-yellow-500'}`} />
-            <span className={`text-sm font-medium ${cryptoSupported ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
-              {cryptoSupported ? 'Advanced Encryption Active' : 'Basic Encryption Active'}
-            </span>
+    <div className="flex min-h-screen bg-background">
+      <Sidebar />
+      
+      <main className="flex-1 ml-64 p-8">
+        {/* Header */}
+        <header className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-2xl font-semibold">Banking</h2>
+            <p className="text-muted-foreground mt-1">Connect your Monobank account to track expenses and manage your finances</p>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Your API tokens are encrypted using {cryptoSupported ? 'Web Crypto API with AES-256-GCM' : 'fallback encryption'}
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Connection Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wallet className="w-5 h-5" />
-            Monobank Connection
-          </CardTitle>
-          <CardDescription>
-            Connect your Monobank account to automatically sync your transactions and account balance.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!isConnected ? (
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="token">Monobank API Token</Label>
-                <Input
-                  id="token"
-                  type="password"
-                  placeholder="Enter your Monobank API token"
-                  {...form.register("token", { required: "Token is required" })}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Get your token from Monobank app: Settings → API → Generate Token
-                </p>
-              </div>
-              
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <Button type="submit" disabled={isLoading} className="w-full">
-                {isLoading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  'Connect to Monobank'
-                )}
+          
+          <div className="flex items-center space-x-4">
+            <ThemeToggle />
+            {isConnected && (
+              <Button onClick={refresh} variant="outline" size="sm" disabled={isLoading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
               </Button>
-            </form>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-green-600 dark:text-green-400 font-medium">
-                  Connected to Monobank
-                </span>
-                <Shield className="w-4 h-4 text-green-500" />
-              </div>
-              
-              <div className="flex gap-2">
-                <Button onClick={refresh} disabled={isLoading} variant="outline">
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-                <Button onClick={disconnect} variant="destructive">
-                  Disconnect
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </div>
+        </header>
+
+        <div className="space-y-6">
 
       {/* Account Cards */}
       {isConnected && accounts.length > 0 && (
@@ -554,66 +459,9 @@ export default function Banking() {
         </Card>
       )}
 
-      {/* Getting Started Guide */}
-      {!isConnected && (
-        <Card>
-          <CardHeader>
-            <CardTitle>How to Get Your Monobank API Token</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3 text-sm">
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                  1
-                </div>
-                <div>
-                  <p className="font-medium">Open Monobank App</p>
-                  <p className="text-muted-foreground">Launch the official Monobank mobile application</p>
-                </div>
-              </div>
-              
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                  2
-                </div>
-                <div>
-                  <p className="font-medium">Navigate to Settings</p>
-                  <p className="text-muted-foreground">Go to Settings → API section</p>
-                </div>
-              </div>
-              
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                  3
-                </div>
-                <div>
-                  <p className="font-medium">Generate Token</p>
-                  <p className="text-muted-foreground">Create a new personal token for StockTrack</p>
-                </div>
-              </div>
-              
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                  4
-                </div>
-                <div>
-                  <p className="font-medium">Copy and Paste</p>
-                  <p className="text-muted-foreground">Copy the token and paste it in the form above</p>
-                </div>
-              </div>
-            </div>
-            
-            <Separator />
-            
-            <Alert>
-              <Shield className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Security Note:</strong> Your API token is encrypted and stored locally in your browser using advanced cryptographic methods. The token is never sent to our servers except for authentication.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-      )}
+
+        </div>
+      </main>
     </div>
   );
 } 
