@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/dashboard";
 import AddInvestment from "@/pages/add-investment";
 import HistoricalData from "@/pages/historical-data";
+import Forecast from "@/pages/forecast";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -14,6 +15,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/add-investment" component={AddInvestment} />
       <Route path="/historical" component={HistoricalData} />
+      <Route path="/forecast" component={Forecast} />
       <Route component={NotFound} />
     </Switch>
   );

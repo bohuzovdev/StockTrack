@@ -11,11 +11,7 @@ import { insertInvestmentSchema } from "@shared/schema";
 import type { InsertInvestment } from "@shared/schema";
 import { z } from "zod";
 
-const formSchema = insertInvestmentSchema.extend({
-  purchaseDate: z.string().min(1, "Purchase date is required"),
-}).omit({
-  purchasePrice: true, // Will be fetched from current S&P 500 price
-});
+const formSchema = insertInvestmentSchema;
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -31,7 +27,6 @@ export function AddInvestmentModal({ isOpen, onClose }: AddInvestmentModalProps)
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount: 0,
-      purchaseDate: new Date().toISOString().split('T')[0],
     },
   });
 
@@ -60,24 +55,7 @@ export function AddInvestmentModal({ isOpen, onClose }: AddInvestmentModalProps)
   });
 
   const onSubmit = async (data: FormData) => {
-    try {
-      // Fetch current S&P 500 price
-      const response = await fetch("/api/market/sp500");
-      const sp500Data = await response.json();
-      
-      const investmentData: InsertInvestment = {
-        amount: data.amount,
-        purchasePrice: sp500Data.price, // Use current S&P 500 price
-        purchaseDate: new Date(data.purchaseDate),
-      };
-      createInvestmentMutation.mutate(investmentData);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch current S&P 500 price. Please try again.",
-        variant: "destructive",
-      });
-    }
+    createInvestmentMutation.mutate(data);
   };
 
   const handleClose = () => {
@@ -117,21 +95,6 @@ export function AddInvestmentModal({ isOpen, onClose }: AddInvestmentModalProps)
             <p className="text-sm text-slate-500 mt-1">
               This amount will be invested in the S&P 500 (SPY) at current market price
             </p>
-          </div>
-          
-          <div>
-            <Label htmlFor="purchaseDate">Purchase Date</Label>
-            <Input
-              id="purchaseDate"
-              type="date"
-              {...form.register("purchaseDate")}
-              className="mt-1"
-            />
-            {form.formState.errors.purchaseDate && (
-              <p className="text-sm text-red-600 mt-1">
-                {form.formState.errors.purchaseDate.message}
-              </p>
-            )}
           </div>
           
           <div className="flex items-center space-x-3 pt-4">

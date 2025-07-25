@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/ui/sidebar";
 import { PortfolioChart } from "@/components/portfolio-chart";
+import { PortfolioForecast } from "@/components/portfolio-forecast";
 import { InvestmentTable } from "@/components/investment-table";
 import { AddInvestmentModal } from "@/components/add-investment-modal";
 import { RefreshCw, TrendingUp, Wallet, DollarSign, Activity } from "lucide-react";
@@ -213,6 +214,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Portfolio Forecast */}
+        <PortfolioForecast />
 
         {/* Investment Table */}
         <InvestmentTable />

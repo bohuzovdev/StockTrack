@@ -2,7 +2,16 @@
 
 ## Overview
 
-This is a full-stack investment portfolio tracking application built with React, Express, and PostgreSQL. The application allows users to track their investments, view portfolio performance, and analyze historical data with real-time market data integration.
+This is a full-stack investment portfolio tracking application built with React, Express, and PostgreSQL. The application allows users to track their USD-based S&P 500 investments, view portfolio performance, analyze historical data with real-time market integration, and forecast future portfolio growth based on 50 years of historical S&P 500 performance.
+
+## Recent Changes (July 25, 2025)
+
+- ✓ Fixed portfolio chart to display actual investment dates instead of hardcoded months
+- ✓ Added comprehensive forecasting feature based on 50 years of S&P 500 historical data
+- ✓ Implemented multiple scenario projections (conservative 7.5%, expected 10.5%, optimistic 13.5%)
+- ✓ Created dedicated forecast page with educational information and interactive controls
+- ✓ Fixed investment form validation and simplified to USD-only investments
+- ✓ Added monthly contribution calculator to forecast future portfolio growth
 
 ## User Preferences
 
@@ -46,14 +55,16 @@ Preferred communication style: Simple, everyday language.
 - **Data Refresh**: Endpoint to manually refresh market data
 
 ### Frontend Pages
-- **Dashboard**: Main portfolio overview with summary cards and charts
+- **Dashboard**: Main portfolio overview with summary cards, charts, and forecasting preview
 - **Add Investment**: Form for adding new investments to portfolio
 - **Historical Data**: Portfolio performance charts and investment timeline
+- **Forecast**: Advanced portfolio projection based on 50 years of S&P 500 historical performance
 - **404 Page**: Error handling for unknown routes
 
 ### UI Components
 - **Investment Table**: Sortable/filterable table with search functionality
-- **Portfolio Chart**: Interactive charts using Recharts library
+- **Portfolio Chart**: Interactive charts using Recharts library showing real investment dates
+- **Portfolio Forecast**: Advanced forecasting component with multiple scenarios and historical data
 - **Add Investment Modal**: Modal form for quick investment entry
 - **Sidebar Navigation**: Fixed navigation with active state indicators
 
@@ -64,6 +75,7 @@ Preferred communication style: Simple, everyday language.
 3. **Portfolio Calculations**: Server-side computation of gains/losses and portfolio metrics
 4. **Real-time Updates**: TanStack Query handles caching and background refresh of data
 5. **Chart Visualization**: Historical data transformed for chart display using Recharts
+6. **Forecasting Engine**: Client-side projection calculations using 50 years of S&P 500 historical returns (10.5% annual)
 
 ## External Dependencies
 
@@ -113,3 +125,5 @@ Preferred communication style: Simple, everyday language.
 4. **Component Library**: shadcn/ui provides consistent, accessible UI components
 5. **Type Safety**: End-to-end TypeScript with runtime validation using Zod
 6. **Modern Development**: ES modules throughout with latest tooling (Vite, Drizzle)
+7. **Historical Data Accuracy**: Uses real S&P 500 50-year performance data (10.5% annual return) for forecasting
+8. **USD-Only Investments**: Simplified to track dollar amounts rather than individual stock shares

@@ -1,10 +1,11 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { BarChart3, Plus, History, Settings } from "lucide-react";
+import { BarChart3, Plus, History, TrendingUp, Settings } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: BarChart3 },
   { name: "Historical Data", href: "/historical", icon: History },
+  { name: "Forecast", href: "/forecast", icon: TrendingUp },
 ];
 
 export function Sidebar() {
