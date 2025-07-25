@@ -16,6 +16,8 @@ import { z } from "zod";
 
 const formSchema = insertInvestmentSchema.extend({
   purchaseDate: z.string().min(1, "Purchase date is required"),
+}).omit({
+  purchasePrice: true, // Will be fetched from current S&P 500 price
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -27,9 +29,7 @@ export default function AddInvestment() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      symbol: "",
-      shares: 0,
-      purchasePrice: 0,
+      amount: 0,
       purchaseDate: new Date().toISOString().split('T')[0],
     },
   });
@@ -57,13 +57,25 @@ export default function AddInvestment() {
     },
   });
 
-  const onSubmit = (data: FormData) => {
-    const investmentData: InsertInvestment = {
-      ...data,
-      symbol: data.symbol.toUpperCase(),
-      purchaseDate: new Date(data.purchaseDate),
-    };
-    createInvestmentMutation.mutate(investmentData);
+  const onSubmit = async (data: FormData) => {
+    try {
+      // Fetch current S&P 500 price
+      const response = await fetch("/api/market/sp500");
+      const sp500Data = await response.json();
+      
+      const investmentData: InsertInvestment = {
+        amount: data.amount,
+        purchasePrice: sp500Data.price, // Use current S&P 500 price
+        purchaseDate: new Date(data.purchaseDate),
+      };
+      createInvestmentMutation.mutate(investmentData);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch current S&P 500 price. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -84,55 +96,26 @@ export default function AddInvestment() {
             <CardContent>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div>
-                  <Label htmlFor="symbol">Stock Symbol</Label>
-                  <Input
-                    id="symbol"
-                    placeholder="e.g., AAPL"
-                    {...form.register("symbol")}
-                    className="mt-1"
-                  />
-                  {form.formState.errors.symbol && (
-                    <p className="text-sm text-red-600 mt-1">
-                      {form.formState.errors.symbol.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="shares">Number of Shares</Label>
-                  <Input
-                    id="shares"
-                    type="number"
-                    step="0.01"
-                    placeholder="0"
-                    {...form.register("shares", { valueAsNumber: true })}
-                    className="mt-1"
-                  />
-                  {form.formState.errors.shares && (
-                    <p className="text-sm text-red-600 mt-1">
-                      {form.formState.errors.shares.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="purchasePrice">Purchase Price per Share</Label>
+                  <Label htmlFor="amount">Investment Amount (USD)</Label>
                   <div className="relative mt-1">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">$</span>
                     <Input
-                      id="purchasePrice"
+                      id="amount"
                       type="number"
                       step="0.01"
                       placeholder="0.00"
-                      {...form.register("purchasePrice", { valueAsNumber: true })}
+                      {...form.register("amount", { valueAsNumber: true })}
                       className="pl-8"
                     />
                   </div>
-                  {form.formState.errors.purchasePrice && (
+                  {form.formState.errors.amount && (
                     <p className="text-sm text-red-600 mt-1">
-                      {form.formState.errors.purchasePrice.message}
+                      {form.formState.errors.amount.message}
                     </p>
                   )}
+                  <p className="text-sm text-slate-500 mt-1">
+                    This amount will be invested in the S&P 500 (SPY) at current market price
+                  </p>
                 </div>
 
                 <div>

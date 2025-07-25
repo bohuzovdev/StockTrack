@@ -4,9 +4,7 @@ import { BarChart3, Plus, History, Settings } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: BarChart3 },
-  { name: "Add Investment", href: "/add-investment", icon: Plus },
   { name: "Historical Data", href: "/historical", icon: History },
-  { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 export function Sidebar() {

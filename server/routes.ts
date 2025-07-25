@@ -81,7 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let marketData = await storage.getMarketData(symbol);
 
       // If no cached data or data is older than 5 minutes, fetch from API
-      if (!marketData || (Date.now() - marketData.lastUpdated.getTime()) > 5 * 60 * 1000) {
+      if (!marketData || (marketData.lastUpdated && (Date.now() - marketData.lastUpdated.getTime()) > 5 * 60 * 1000)) {
         try {
           const response = await fetch(
             `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`
@@ -125,7 +125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       let sp500Data = await storage.getMarketData("SPY"); // Using SPY as S&P 500 proxy
 
-      if (!sp500Data || (Date.now() - sp500Data.lastUpdated.getTime()) > 5 * 60 * 1000) {
+      if (!sp500Data || (sp500Data.lastUpdated && (Date.now() - sp500Data.lastUpdated.getTime()) > 5 * 60 * 1000)) {
         try {
           const response = await fetch(
             `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=SPY&apikey=${ALPHA_VANTAGE_API_KEY}`
@@ -167,7 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/market/refresh", async (req, res) => {
     try {
       const investments = await storage.getInvestments();
-      const symbols = [...new Set(investments.map(inv => inv.symbol))];
+      const symbols = Array.from(new Set(investments.map(inv => inv.symbol)));
       const results = [];
 
       for (const symbol of symbols) {

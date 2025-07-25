@@ -70,15 +70,15 @@ export default function HistoricalData() {
                     </div>
                     <div className="text-right">
                       <p className="font-medium text-slate-800">
-                        {investment.shares} shares at {formatCurrency(investment.purchasePrice)}
+                        {investment.shares.toFixed(2)} shares at {formatCurrency(investment.purchasePrice)}
                       </p>
                       <p className="text-sm text-slate-500">
-                        Total: {formatCurrency(investment.shares * investment.purchasePrice)}
+                        Total invested: {formatCurrency(investment.amount)}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-medium text-slate-800">
-                        Current: {formatCurrency(investment.marketValue)}
+                        Current: {formatCurrency(investment.currentValue)}
                       </p>
                       <p className={`text-sm ${investment.gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {investment.gainLoss >= 0 ? '+' : ''}{formatCurrency(investment.gainLoss)} 

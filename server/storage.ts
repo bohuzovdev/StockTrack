@@ -32,6 +32,7 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const investment: Investment = {
       ...insertInvestment,
+      symbol: "SPY", // Always S&P 500
       id,
       createdAt: new Date(),
     };
@@ -83,8 +84,8 @@ export class MemStorage implements IStorage {
     const investments = await this.getInvestments();
     const investmentsWithData = await this.getInvestmentsWithCurrentData();
 
-    const totalInvested = investments.reduce((sum, inv) => sum + (inv.shares * inv.purchasePrice), 0);
-    const totalValue = investmentsWithData.reduce((sum, inv) => sum + inv.marketValue, 0);
+    const totalInvested = investments.reduce((sum, inv) => sum + inv.amount, 0);
+    const totalValue = investmentsWithData.reduce((sum, inv) => sum + inv.currentValue, 0);
     const totalGains = totalValue - totalInvested;
     const totalGainsPercent = totalInvested > 0 ? (totalGains / totalInvested) * 100 : 0;
 
@@ -103,15 +104,16 @@ export class MemStorage implements IStorage {
     for (const investment of investments) {
       const marketData = await this.getMarketData(investment.symbol);
       const currentPrice = marketData?.price || investment.purchasePrice;
-      const marketValue = investment.shares * currentPrice;
-      const totalCost = investment.shares * investment.purchasePrice;
-      const gainLoss = marketValue - totalCost;
-      const gainLossPercent = totalCost > 0 ? (gainLoss / totalCost) * 100 : 0;
+      const shares = investment.amount / investment.purchasePrice; // Calculate shares from USD amount
+      const currentValue = shares * currentPrice;
+      const gainLoss = currentValue - investment.amount;
+      const gainLossPercent = investment.amount > 0 ? (gainLoss / investment.amount) * 100 : 0;
 
       result.push({
         ...investment,
         currentPrice,
-        marketValue,
+        currentValue,
+        shares,
         gainLoss,
         gainLossPercent,
       });

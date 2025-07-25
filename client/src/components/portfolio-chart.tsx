@@ -11,8 +11,8 @@ const generateHistoricalData = (investments: InvestmentWithCurrentData[]) => {
   const data = [];
   
   for (let i = 0; i < months.length; i++) {
-    const totalInvested = investments.reduce((sum, inv) => sum + (inv.shares * inv.purchasePrice), 0);
-    const currentValue = investments.reduce((sum, inv) => sum + inv.marketValue, 0);
+    const totalInvested = investments.reduce((sum, inv) => sum + inv.amount, 0);
+    const currentValue = investments.reduce((sum, inv) => sum + inv.currentValue, 0);
     
     // Simulate historical progression
     const progressionFactor = (i + 1) / months.length;

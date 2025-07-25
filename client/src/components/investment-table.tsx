@@ -123,7 +123,7 @@ export function InvestmentTable() {
                   <TableHead>Shares</TableHead>
                   <TableHead>Avg Cost</TableHead>
                   <TableHead>Current Price</TableHead>
-                  <TableHead>Market Value</TableHead>
+                  <TableHead>Current Value</TableHead>
                   <TableHead>Gain/Loss</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -154,7 +154,7 @@ export function InvestmentTable() {
                       {formatCurrency(investment.currentPrice)}
                     </TableCell>
                     <TableCell className="text-slate-700 font-medium">
-                      {formatCurrency(investment.marketValue)}
+                      {formatCurrency(investment.currentValue)}
                     </TableCell>
                     <TableCell>
                       <span className={`font-medium ${investment.gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
