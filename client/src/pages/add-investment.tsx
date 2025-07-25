@@ -14,11 +14,7 @@ import { insertInvestmentSchema } from "@shared/schema";
 import type { InsertInvestment } from "@shared/schema";
 import { z } from "zod";
 
-const formSchema = insertInvestmentSchema.extend({
-  purchaseDate: z.string().min(1, "Purchase date is required"),
-}).omit({
-  purchasePrice: true, // Will be fetched from current S&P 500 price
-});
+const formSchema = insertInvestmentSchema;
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -30,7 +26,7 @@ export default function AddInvestment() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount: 0,
-      purchaseDate: new Date().toISOString().split('T')[0],
+      purchaseDate: new Date(),
     },
   });
 
@@ -59,14 +55,9 @@ export default function AddInvestment() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      // Fetch current S&P 500 price
-      const response = await fetch("/api/market/sp500");
-      const sp500Data = await response.json();
-      
       const investmentData: InsertInvestment = {
         amount: data.amount,
-        purchasePrice: sp500Data.price, // Use current S&P 500 price
-        purchaseDate: new Date(data.purchaseDate),
+        purchaseDate: data.purchaseDate,
       };
       createInvestmentMutation.mutate(investmentData);
     } catch (error) {
@@ -79,14 +70,14 @@ export default function AddInvestment() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-background">
       <Sidebar />
       
       <main className="flex-1 ml-64 p-8">
         <div className="max-w-2xl mx-auto">
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-slate-800">Add New Investment</h2>
-            <p className="text-slate-500 mt-1">Enter your investment details to start tracking</p>
+            <h2 className="text-2xl font-semibold">Add New Investment</h2>
+            <p className="text-muted-foreground mt-1">Enter your investment details to start tracking</p>
           </div>
 
           <Card>
@@ -98,7 +89,7 @@ export default function AddInvestment() {
                 <div>
                   <Label htmlFor="amount">Investment Amount (USD)</Label>
                   <div className="relative mt-1">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">$</span>
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
                     <Input
                       id="amount"
                       type="number"
@@ -113,7 +104,7 @@ export default function AddInvestment() {
                       {form.formState.errors.amount.message}
                     </p>
                   )}
-                  <p className="text-sm text-slate-500 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     This amount will be invested in the S&P 500 (SPY) at current market price
                   </p>
                 </div>
@@ -123,7 +114,12 @@ export default function AddInvestment() {
                   <Input
                     id="purchaseDate"
                     type="date"
-                    {...form.register("purchaseDate")}
+                    max={new Date().toISOString().split('T')[0]}
+                    defaultValue={new Date().toISOString().split('T')[0]}
+                    {...form.register("purchaseDate", { 
+                      valueAsDate: true,
+                      setValueAs: (value) => value ? new Date(value) : undefined
+                    })}
                     className="mt-1"
                   />
                   {form.formState.errors.purchaseDate && (
@@ -131,6 +127,9 @@ export default function AddInvestment() {
                       {form.formState.errors.purchaseDate.message}
                     </p>
                   )}
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Select the date when you made this investment. Future dates are not allowed.
+                  </p>
                 </div>
 
                 <div className="flex items-center space-x-4 pt-4">

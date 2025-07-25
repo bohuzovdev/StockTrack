@@ -25,6 +25,10 @@ export function PortfolioForecast() {
   const [forecastYears, setForecastYears] = useState(10);
   const [monthlyContribution, setMonthlyContribution] = useState(0);
   const [showInflationAdjusted, setShowInflationAdjusted] = useState(false);
+  
+  // Separate string states for input handling
+  const [forecastYearsInput, setForecastYearsInput] = useState("10");
+  const [monthlyContributionInput, setMonthlyContributionInput] = useState("0");
 
   const { data: investments } = useQuery<InvestmentWithCurrentData[]>({
     queryKey: ["/api/investments"],
@@ -103,7 +107,7 @@ export function PortfolioForecast() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-slate-500">
+          <div className="text-center py-8 text-muted-foreground">
             Add investments to see portfolio growth projections based on 50 years of S&P 500 performance.
           </div>
         </CardContent>
@@ -118,22 +122,34 @@ export function PortfolioForecast() {
           <TrendingUp className="h-5 w-5" />
           Portfolio Forecast
         </CardTitle>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           Based on 50 years of S&P 500 historical performance (10.5% annual return)
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Forecast Controls */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-secondary rounded-lg">
           <div>
             <Label htmlFor="years">Forecast Period (Years)</Label>
             <Input
               id="years"
-              type="number"
-              min="1"
-              max="40"
-              value={forecastYears}
-              onChange={(e) => setForecastYears(Number(e.target.value))}
+              type="text"
+              placeholder="10"
+              value={forecastYearsInput}
+              onChange={(e) => {
+                const value = e.target.value;
+                setForecastYearsInput(value);
+                const numValue = parseInt(value) || 0;
+                if (numValue >= 1 && numValue <= 40) {
+                  setForecastYears(numValue);
+                }
+              }}
+              onBlur={() => {
+                const numValue = parseInt(forecastYearsInput) || 10;
+                const clampedValue = Math.max(1, Math.min(40, numValue));
+                setForecastYears(clampedValue);
+                setForecastYearsInput(clampedValue.toString());
+              }}
               className="mt-1"
             />
           </div>
@@ -141,11 +157,23 @@ export function PortfolioForecast() {
             <Label htmlFor="monthly">Monthly Contribution ($)</Label>
             <Input
               id="monthly"
-              type="number"
-              min="0"
-              step="50"
-              value={monthlyContribution}
-              onChange={(e) => setMonthlyContribution(Number(e.target.value))}
+              type="text"
+              placeholder="0"
+              value={monthlyContributionInput}
+              onChange={(e) => {
+                const value = e.target.value;
+                setMonthlyContributionInput(value);
+                const numValue = parseFloat(value) || 0;
+                if (numValue >= 0) {
+                  setMonthlyContribution(numValue);
+                }
+              }}
+              onBlur={() => {
+                const numValue = parseFloat(monthlyContributionInput) || 0;
+                const clampedValue = Math.max(0, numValue);
+                setMonthlyContribution(clampedValue);
+                setMonthlyContributionInput(clampedValue.toString());
+              }}
               className="mt-1"
             />
           </div>
@@ -163,30 +191,30 @@ export function PortfolioForecast() {
         {/* Forecast Summary */}
         {finalValue && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-sm text-slate-600">Conservative Scenario</div>
-              <div className="text-xl font-bold text-orange-600">
+            <div className="text-center p-4 border rounded-lg bg-card">
+              <div className="text-sm text-muted-foreground">Conservative Scenario</div>
+              <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
                 {formatCurrency(finalValue.conservative)}
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-muted-foreground">
                 {formatPercentage(showInflationAdjusted ? SP500_REAL_RETURN - 0.02 : SP500_HISTORICAL_RETURN - 0.03)} annual
               </div>
             </div>
-            <div className="text-center p-4 border rounded-lg bg-blue-50">
-              <div className="text-sm text-slate-600">Expected Scenario</div>
-              <div className="text-xl font-bold text-blue-600">
+            <div className="text-center p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
+              <div className="text-sm text-muted-foreground">Expected Scenario</div>
+              <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
                 {formatCurrency(finalValue.expected)}
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-muted-foreground">
                 {formatPercentage(showInflationAdjusted ? SP500_REAL_RETURN : SP500_HISTORICAL_RETURN)} annual
               </div>
             </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-sm text-slate-600">Optimistic Scenario</div>
-              <div className="text-xl font-bold text-green-600">
+            <div className="text-center p-4 border rounded-lg bg-card">
+              <div className="text-sm text-muted-foreground">Optimistic Scenario</div>
+              <div className="text-xl font-bold text-green-600 dark:text-green-400">
                 {formatCurrency(finalValue.optimistic)}
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-muted-foreground">
                 {formatPercentage(showInflationAdjusted ? SP500_REAL_RETURN + 0.02 : SP500_HISTORICAL_RETURN + 0.03)} annual
               </div>
             </div>
@@ -197,17 +225,17 @@ export function PortfolioForecast() {
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={forecastData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis 
                 dataKey="year" 
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 12, fill: '#64748b' }}
+                tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
               />
               <YAxis 
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 12, fill: '#64748b' }}
+                tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
                 tickFormatter={formatCurrency}
               />
               <Tooltip 
@@ -217,12 +245,13 @@ export function PortfolioForecast() {
                   name === 'expected' ? 'Expected' :
                   name === 'optimistic' ? 'Optimistic' : 'Total Invested'
                 ]}
-                labelStyle={{ color: '#334155' }}
+                labelStyle={{ color: 'var(--foreground)' }}
                 contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e2e8f0',
+                  backgroundColor: 'var(--background)',
+                  border: '1px solid var(--border)',
                   borderRadius: '8px',
                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  color: 'var(--foreground)'
                 }}
               />
               <Line
@@ -263,23 +292,23 @@ export function PortfolioForecast() {
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-slate-400 rounded-full"></div>
-              <span className="text-slate-600">Total Invested</span>
+              <span className="text-muted-foreground">Total Invested</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-              <span className="text-slate-600">Conservative</span>
+              <span className="text-muted-foreground">Conservative</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-              <span className="text-slate-600">Expected</span>
+              <span className="text-muted-foreground">Expected</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-green-600 rounded-full"></div>
-              <span className="text-slate-600">Optimistic</span>
+              <span className="text-muted-foreground">Optimistic</span>
             </div>
           </div>
 
-          <div className="text-xs text-slate-500 text-center space-y-1">
+          <div className="text-xs text-muted-foreground text-center space-y-1">
             <p>
               <strong>Historical Context:</strong> The S&P 500 has averaged 10.5% annual returns over the last 50 years (1975-2025) including dividends.
             </p>

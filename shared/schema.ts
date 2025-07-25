@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, real, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, real, timestamp, serial, boolean, integer, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -21,12 +21,48 @@ export const marketData = pgTable("market_data", {
   lastUpdated: timestamp("last_updated").default(sql`now()`),
 });
 
+export const bankAccounts = pgTable("bank_accounts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 256 }), // For future user system
+  bankName: varchar("bank_name", { length: 100 }).notNull(),
+  accountNumber: varchar("account_number", { length: 50 }),
+  accountType: varchar("account_type", { length: 20 }).default("checking"), // checking, savings, credit
+  currency: varchar("currency", { length: 3 }).default("UAH"),
+  isActive: boolean("is_active").default(true),
+  apiToken: varchar("api_token", { length: 500 }), // For Monobank or other APIs
+  lastSyncAt: timestamp("last_sync_at"),
+  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+});
+
+export const bankTransactions = pgTable("bank_transactions", {
+  id: serial("id").primaryKey(),
+  accountId: integer("account_id").references(() => bankAccounts.id),
+  externalId: varchar("external_id", { length: 100 }), // Bank's transaction ID
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).default("UAH"),
+  description: text("description"),
+  category: varchar("category", { length: 100 }),
+  transactionDate: timestamp("transaction_date").notNull(),
+  balance: decimal("balance", { precision: 10, scale: 2 }),
+  isExpense: boolean("is_expense").default(true),
+  syncedAt: timestamp("synced_at").default(sql`now()`),
+  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+});
+
 export const insertInvestmentSchema = createInsertSchema(investments).omit({
   id: true,
   symbol: true, // Symbol is auto-set to SPY
   purchasePrice: true, // Auto-set from current S&P 500 price
-  purchaseDate: true, // Auto-set to current date
   createdAt: true,
+}).extend({
+  purchaseDate: z.union([z.string(), z.date()]).optional().transform((val) => {
+    if (!val) return undefined;
+    const date = typeof val === 'string' ? new Date(val) : val;
+    if (date > new Date()) {
+      throw new Error("Purchase date cannot be in the future");
+    }
+    return date;
+  })
 });
 
 export const insertMarketDataSchema = createInsertSchema(marketData).omit({

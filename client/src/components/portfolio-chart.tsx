@@ -9,7 +9,7 @@ import type { InvestmentWithCurrentData } from "@shared/schema";
 const generateHistoricalData = (investments: InvestmentWithCurrentData[]) => {
   if (investments.length === 0) return [];
   
-  const data: { month: string; portfolio: number; sp500: number }[] = [];
+  const data: { month: string; portfolio: number; invested: number }[] = [];
   const sortedInvestments = investments.sort((a, b) => 
     new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime()
   );
@@ -46,7 +46,7 @@ const generateHistoricalData = (investments: InvestmentWithCurrentData[]) => {
     data.push({
       month: monthData.label,
       portfolio: Math.round(cumulativeValue),
-      sp500: Math.round(cumulativeInvested * 1.0), // S&P 500 baseline (no change for simplicity)
+      invested: Math.round(cumulativeInvested), // Total amount invested up to this point
     });
   });
   
@@ -57,7 +57,7 @@ const generateHistoricalData = (investments: InvestmentWithCurrentData[]) => {
     data.push({
       month: todayLabel,
       portfolio: data[0].portfolio,
-      sp500: data[0].sp500,
+      invested: data[0].invested,
     });
   }
   
@@ -114,40 +114,41 @@ export function PortfolioChart() {
       <CardContent>
         {isLoading ? (
           <div className="h-64 flex items-center justify-center">
-            <div className="text-slate-500">Loading chart data...</div>
+            <div className="text-muted-foreground">Loading chart data...</div>
           </div>
         ) : chartData.length === 0 ? (
           <div className="h-64 flex items-center justify-center">
-            <div className="text-slate-500">No data available. Add investments to see your portfolio performance.</div>
+            <div className="text-muted-foreground">No data available. Add investments to see your portfolio performance.</div>
           </div>
         ) : (
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis 
                   dataKey="month" 
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 12, fill: '#64748b' }}
+                  tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
                 />
                 <YAxis 
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 12, fill: '#64748b' }}
+                  tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
                   tickFormatter={formatCurrency}
                 />
                 <Tooltip 
                   formatter={(value: number, name: string) => [
                     formatCurrency(value),
-                    name === 'portfolio' ? 'Portfolio Value' : 'S&P 500 Benchmark'
+                    name === 'portfolio' ? 'Portfolio Value' : 'Amount Invested'
                   ]}
-                  labelStyle={{ color: '#334155' }}
+                  labelStyle={{ color: 'var(--foreground)' }}
                   contentStyle={{
-                    backgroundColor: 'white',
-                    border: '1px solid #e2e8f0',
+                    backgroundColor: 'var(--background)',
+                    border: '1px solid var(--border)',
                     borderRadius: '8px',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    color: 'var(--foreground)'
                   }}
                 />
                 <Line
@@ -160,11 +161,11 @@ export function PortfolioChart() {
                 />
                 <Line
                   type="monotone"
-                  dataKey="sp500"
-                  stroke="#f59e0b"
+                  dataKey="invested"
+                  stroke="#6b7280"
                   strokeWidth={2}
-                  dot={{ fill: '#f59e0b', strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, stroke: '#f59e0b', strokeWidth: 2 }}
+                  dot={{ fill: '#6b7280', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, stroke: '#6b7280', strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -174,11 +175,11 @@ export function PortfolioChart() {
         <div className="flex items-center justify-center space-x-6 mt-4 text-sm">
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-            <span className="text-slate-600">Portfolio Value</span>
+            <span className="text-muted-foreground">Portfolio Value</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-            <span className="text-slate-600">S&P 500 Benchmark</span>
+            <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+            <span className="text-muted-foreground">Amount Invested</span>
           </div>
         </div>
       </CardContent>

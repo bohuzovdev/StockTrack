@@ -27,6 +27,7 @@ export function AddInvestmentModal({ isOpen, onClose }: AddInvestmentModalProps)
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount: 0,
+      purchaseDate: new Date(),
     },
   });
 
@@ -55,7 +56,11 @@ export function AddInvestmentModal({ isOpen, onClose }: AddInvestmentModalProps)
   });
 
   const onSubmit = async (data: FormData) => {
-    createInvestmentMutation.mutate(data);
+    const investmentData: InsertInvestment = {
+      amount: data.amount,
+      purchaseDate: data.purchaseDate,
+    };
+    createInvestmentMutation.mutate(investmentData);
   };
 
   const handleClose = () => {
@@ -77,7 +82,7 @@ export function AddInvestmentModal({ isOpen, onClose }: AddInvestmentModalProps)
           <div>
             <Label htmlFor="amount">Investment Amount (USD)</Label>
             <div className="relative mt-1">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">$</span>
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
               <Input
                 id="amount"
                 type="number"
@@ -92,8 +97,31 @@ export function AddInvestmentModal({ isOpen, onClose }: AddInvestmentModalProps)
                 {form.formState.errors.amount.message}
               </p>
             )}
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               This amount will be invested in the S&P 500 (SPY) at current market price
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="purchaseDate">Purchase Date</Label>
+            <Input
+              id="purchaseDate"
+              type="date"
+              max={new Date().toISOString().split('T')[0]}
+              defaultValue={new Date().toISOString().split('T')[0]}
+              {...form.register("purchaseDate", { 
+                valueAsDate: true,
+                setValueAs: (value) => value ? new Date(value) : undefined
+              })}
+              className="mt-1"
+            />
+            {form.formState.errors.purchaseDate && (
+              <p className="text-sm text-red-600 mt-1">
+                {form.formState.errors.purchaseDate.message}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              Select the date when you made this investment.
             </p>
           </div>
           

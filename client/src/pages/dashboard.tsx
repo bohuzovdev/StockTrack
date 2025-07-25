@@ -11,6 +11,8 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
+import { WebSocketStatus } from "@/components/websocket-status";
+import { ThemeToggle } from "@/components/theme-toggle";
 import type { PortfolioSummary, MarketData } from "@shared/schema";
 
 export default function Dashboard() {
@@ -55,25 +57,20 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-background">
       <Sidebar />
       
       <main className="flex-1 ml-64 p-8">
         {/* Header */}
         <header className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-2xl font-semibold text-slate-800">Portfolio Dashboard</h2>
-            <p className="text-slate-500 mt-1">Track your investments and market performance</p>
+            <h2 className="text-2xl font-semibold">Portfolio Dashboard</h2>
+            <p className="text-muted-foreground mt-1">Track your investments and market performance</p>
           </div>
           
           <div className="flex items-center space-x-4">
-            <div className="text-sm text-slate-500">
-              Last updated: <span>2 minutes ago</span>
-            </div>
-            <div className="flex items-center space-x-2 text-sm">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-slate-600">Live Data</span>
-            </div>
+            <WebSocketStatus compact />
+            <ThemeToggle />
             <Button onClick={handleRefreshData} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
@@ -87,20 +84,20 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500">Total Portfolio Value</p>
-                  <p className="text-2xl font-semibold text-slate-800 mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">Total Portfolio Value</p>
+                  <p className="text-2xl font-semibold mt-1">
                     {summaryLoading ? "Loading..." : formatCurrency(portfolioSummary?.totalValue || 0)}
                   </p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <Wallet className="h-5 w-5 text-blue-600" />
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-full">
+                  <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
               <div className="flex items-center mt-4">
                 <span className={`text-sm font-medium ${portfolioSummary?.totalGainsPercent && portfolioSummary?.totalGainsPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {portfolioSummary ? formatPercent(portfolioSummary.totalGainsPercent) : "--"}
                 </span>
-                <span className="text-slate-500 text-sm ml-2">vs invested</span>
+                <span className="text-muted-foreground text-sm ml-2">vs invested</span>
               </div>
             </CardContent>
           </Card>
@@ -109,17 +106,17 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500">Total Invested</p>
-                  <p className="text-2xl font-semibold text-slate-800 mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">Total Invested</p>
+                  <p className="text-2xl font-semibold mt-1">
                     {summaryLoading ? "Loading..." : formatCurrency(portfolioSummary?.totalInvested || 0)}
                   </p>
                 </div>
-                <div className="p-3 bg-slate-100 rounded-full">
-                  <DollarSign className="h-5 w-5 text-slate-600" />
+                <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-full">
+                  <DollarSign className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                 </div>
               </div>
               <div className="flex items-center mt-4">
-                <span className="text-slate-500 text-sm">Initial investment</span>
+                <span className="text-muted-foreground text-sm">Initial investment</span>
               </div>
             </CardContent>
           </Card>
@@ -128,20 +125,20 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500">Total Gains</p>
-                  <p className={`text-2xl font-semibold mt-1 ${portfolioSummary?.totalGains && portfolioSummary?.totalGains >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <p className="text-sm font-medium text-muted-foreground">Total Gains</p>
+                  <p className={`text-2xl font-semibold mt-1 ${portfolioSummary?.totalGains && portfolioSummary?.totalGains >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {summaryLoading ? "Loading..." : formatCurrency(portfolioSummary?.totalGains || 0)}
                   </p>
                 </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <TrendingUp className="h-5 w-5 text-green-600" />
+                <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
+                  <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
               </div>
               <div className="flex items-center mt-4">
-                <span className={`text-sm font-medium ${portfolioSummary?.totalGainsPercent && portfolioSummary?.totalGainsPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <span className={`text-sm font-medium ${portfolioSummary?.totalGainsPercent && portfolioSummary?.totalGainsPercent >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                   {portfolioSummary ? formatPercent(portfolioSummary.totalGainsPercent) : "--"}
                 </span>
-                <span className="text-slate-500 text-sm ml-2">return</span>
+                <span className="text-muted-foreground text-sm ml-2">return</span>
               </div>
             </CardContent>
           </Card>
@@ -150,20 +147,20 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500">S&P 500 Today</p>
-                  <p className="text-2xl font-semibold text-slate-800 mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">S&P 500 Today</p>
+                  <p className="text-2xl font-semibold mt-1">
                     {sp500Loading ? "Loading..." : sp500Data?.price.toFixed(2) || "--"}
                   </p>
                 </div>
-                <div className="p-3 bg-orange-100 rounded-full">
-                  <Activity className="h-5 w-5 text-orange-600" />
+                <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-full">
+                  <Activity className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                 </div>
               </div>
               <div className="flex items-center mt-4">
-                <span className={`text-sm font-medium ${sp500Data?.changePercent && sp500Data?.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <span className={`text-sm font-medium ${sp500Data?.changePercent && sp500Data?.changePercent >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                   {sp500Data ? formatPercent(sp500Data.changePercent) : "--"}
                 </span>
-                <span className="text-slate-500 text-sm ml-2">
+                <span className="text-muted-foreground text-sm ml-2">
                   {sp500Data ? `${sp500Data.change >= 0 ? '+' : ''}${sp500Data.change.toFixed(2)} pts` : "--"}
                 </span>
               </div>
@@ -184,6 +181,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Button 
+                variant="outline"
                 onClick={() => setIsAddModalOpen(true)}
                 className="w-full justify-between"
               >
@@ -203,13 +201,13 @@ export default function Dashboard() {
               </Button>
 
               {/* Market Status Widget */}
-              <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+              <div className="mt-6 p-4 bg-secondary rounded-lg border">
                 <div className="flex items-center space-x-2 mb-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-slate-700">Market Status</span>
+                  <span className="text-sm font-medium">Market Status</span>
                 </div>
-                <p className="text-sm text-slate-600">Markets are open</p>
-                <p className="text-xs text-slate-500 mt-1">Next close: 4:00 PM EST</p>
+                <p className="text-sm text-muted-foreground">Markets are open</p>
+                <p className="text-xs text-muted-foreground mt-1">Next close: 4:00 PM EST</p>
               </div>
             </CardContent>
           </Card>

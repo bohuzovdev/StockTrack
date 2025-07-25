@@ -28,11 +28,10 @@ export class MemStorage implements IStorage {
     this.marketData = new Map();
   }
 
-  async createInvestment(insertInvestment: InsertInvestment): Promise<Investment> {
+  async createInvestment(data: any): Promise<Investment> {
     const id = randomUUID();
     const investment: Investment = {
-      ...insertInvestment,
-      symbol: "SPY", // Always S&P 500
+      ...data,
       id,
       createdAt: new Date(),
     };

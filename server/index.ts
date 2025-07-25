@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { setupWebSocket } from "./websocket";
 
 const app = express();
 app.use(express.json());
@@ -56,16 +57,17 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
+  // Setup WebSocket server for real-time market data updates on separate port
+  setupWebSocket(); // Now runs on port 3001 to avoid conflicts
+  log("WebSocket server initialized on separate port with rate limiting");
+
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
+  const port = parseInt(process.env.PORT || '3000', 10);
+  const host = process.env.NODE_ENV === 'development' ? '127.0.0.1' : '0.0.0.0';
+  server.listen(port, host, () => {
     log(`serving on port ${port}`);
   });
 })();

@@ -69,6 +69,15 @@ export function InvestmentTable() {
     return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
   };
 
+  const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString("en-US", {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   const filteredInvestments = investments?.filter(investment =>
     investment.symbol.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
@@ -86,7 +95,7 @@ export function InvestmentTable() {
           <CardTitle>Investment Holdings</CardTitle>
           <div className="flex items-center space-x-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 type="text"
                 placeholder="Search investments..."
@@ -111,7 +120,7 @@ export function InvestmentTable() {
         {isLoading ? (
           <div className="text-center py-8">Loading investments...</div>
         ) : filteredInvestments.length === 0 ? (
-          <div className="text-center py-8 text-slate-500">
+          <div className="text-center py-8 text-muted-foreground">
             {searchTerm ? "No investments match your search." : "No investments found. Add your first investment to get started."}
           </div>
         ) : (
@@ -124,40 +133,58 @@ export function InvestmentTable() {
                   <TableHead>Avg Cost</TableHead>
                   <TableHead>Current Price</TableHead>
                   <TableHead>Current Value</TableHead>
+                  <TableHead>Purchase Date</TableHead>
+                  <TableHead>Entry Added</TableHead>
                   <TableHead>Gain/Loss</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredInvestments.map((investment) => (
-                  <TableRow key={investment.id} className="hover:bg-slate-50">
+                  <TableRow key={investment.id} className="hover:bg-muted/50">
                     <TableCell>
                       <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-xs font-semibold text-blue-600">
+                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
                             {investment.symbol}
                           </span>
                         </div>
                         <div>
-                          <p className="font-medium text-slate-800">{investment.symbol}</p>
-                          <p className="text-sm text-slate-500">{investment.companyName || "Stock"}</p>
+                          <p className="font-medium">{investment.symbol}</p>
+                          <p className="text-sm text-muted-foreground">{investment.companyName || "Stock"}</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-700">
-                      {investment.shares}
+                    <TableCell>
+                      {investment.shares.toFixed(4)}
                     </TableCell>
-                    <TableCell className="text-slate-700">
+                    <TableCell>
                       {formatCurrency(investment.purchasePrice)}
                     </TableCell>
-                    <TableCell className="text-slate-700">
+                    <TableCell>
                       {formatCurrency(investment.currentPrice)}
                     </TableCell>
-                    <TableCell className="text-slate-700 font-medium">
+                    <TableCell className="font-medium">
                       {formatCurrency(investment.currentValue)}
                     </TableCell>
                     <TableCell>
-                      <span className={`font-medium ${investment.gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <div>
+                        <p className="font-medium text-sm">
+                          {investment.purchaseDate ? formatDate(investment.purchaseDate) : 'N/A'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Investment date</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium text-sm">
+                          {investment.createdAt ? formatDate(investment.createdAt) : 'N/A'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Added to system</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`font-medium ${investment.gainLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                         {formatCurrency(investment.gainLoss)} ({formatPercent(investment.gainLossPercent)})
                       </span>
                     </TableCell>
