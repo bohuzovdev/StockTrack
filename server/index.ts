@@ -123,11 +123,13 @@ app.get('/api/auth/me', (req: Request, res: Response) => {
 
     // Start server
     const port = parseInt(process.env.PORT || '3000', 10);
-    const host = process.env.NODE_ENV === 'development' ? '127.0.0.1' : '0.0.0.0';
+    const host = '0.0.0.0'; // Railway requires binding to all interfaces
     
     server.listen(port, host, () => {
       log(`🚀 Server running on ${host}:${port} in ${process.env.NODE_ENV || 'development'} mode`);
       log(`💚 Health check available at: http://${host}:${port}/health`);
+      log(`🌐 Railway URL: https://pft.railway.app`);
+      log(`📊 Environment variables loaded: ${Object.keys(process.env).length}`);
     });
     
     // Handle graceful shutdown
@@ -137,6 +139,25 @@ app.get('/api/auth/me', (req: Request, res: Response) => {
         log('✅ Server closed');
         process.exit(0);
       });
+    });
+
+    // Add process monitoring for Railway
+    process.on('SIGINT', () => {
+      log('🛑 SIGINT received, shutting down gracefully');
+      server.close(() => {
+        log('✅ Server closed');
+        process.exit(0);
+      });
+    });
+
+    process.on('uncaughtException', (error) => {
+      console.error('❌ Uncaught Exception:', error);
+      process.exit(1);
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('❌ Unhandled Promise Rejection at:', promise, 'reason:', reason);
+      process.exit(1);
     });
     
   } catch (error) {
