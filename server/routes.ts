@@ -145,24 +145,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Reset corrupted tokens globally (admin/debug endpoint)
-  app.post("/api/admin/reset-corrupted-tokens", requireAuth, async (req, res) => {
-    try {
-      console.log(`🔄 Global token cleanup requested by user ${req.user!.googleId}`);
+  // Reset corrupted tokens globally (admin/debug endpoint - DEVELOPMENT ONLY)
+  if (process.env.NODE_ENV === 'development') {
+    app.post("/api/admin/reset-corrupted-tokens", requireAuth, async (req, res) => {
+      try {
+        console.log(`🔄 Global token cleanup requested by user ${req.user!.googleId}`);
 
-      // Reset all corrupted tokens globally
-      const removedCount = await userTokenService.resetAllCorruptedTokens();
+        // Reset all corrupted tokens globally
+        const removedCount = await userTokenService.resetAllCorruptedTokens();
 
-      res.json({
-        success: true,
-        message: `Successfully removed ${removedCount} corrupted tokens globally`,
-        removedCount
-      });
-    } catch (error: any) {
-      console.error("Failed to reset corrupted tokens:", error);
-      res.status(500).json({ error: error.message || "Failed to reset corrupted tokens" });
-    }
-  });
+        res.json({
+          success: true,
+          message: `Successfully removed ${removedCount} corrupted tokens globally`,
+          removedCount
+        });
+      } catch (error: any) {
+        console.error("Failed to reset corrupted tokens:", error);
+        res.status(500).json({ error: error.message || "Failed to reset corrupted tokens" });
+      }
+    });
+  }
 
   // Investment routes - require authentication
   app.post("/api/investments", requireAuth, async (req, res) => {

@@ -5,15 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
-    "build": "npm run build:client && npm run build:server",
-    "build:client": "cd client && npm run build",
-    "build:server": "tsc",
-    "start": "NODE_ENV=production node dist/server/index.js",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio",
-    "db:push": "drizzle-kit push",
-    "db:drop": "drizzle-kit drop"
+    "build": "npm install",
+    "start": "NODE_ENV=production tsx server/index.ts",
+    "preview": "npm run build && npm run start"
   },
   "keywords": ["finance", "portfolio", "banking", "investment", "monobank", "crypto"],
   "author": "PFT Team",
