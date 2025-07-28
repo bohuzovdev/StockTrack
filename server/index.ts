@@ -7,7 +7,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupWebSocket } from "./websocket";
 import session from "express-session";
-import passport from "./auth";
+import passport, { isOAuthConfigured } from "./auth";
 
 const app = express();
 app.use(express.json());
@@ -28,30 +28,46 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Auth routes
-app.get('/auth/google', passport.authenticate('google', { 
-  scope: ['profile', 'email'] 
-}));
+// Auth routes - only if OAuth is configured
+if (isOAuthConfigured) {
+  app.get('/auth/google', 
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+  );
 
-app.get('/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  (req: Request, res: Response) => {
-    // Successful authentication
-    const user = req.user as any;
-    console.log(`🎉 User authenticated: ${user?.name} (${user?.email})`);
-    res.redirect('/');
-  }
-);
-
-app.get('/auth/logout', (req: Request, res: Response) => {
-  req.logout((err) => {
-    if (err) {
-      console.error('Logout error:', err);
-      return res.status(500).json({ error: 'Logout failed' });
+  app.get('/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/' }),
+    (req, res) => {
+      // Successful authentication
+      console.log('🎉 User authenticated:', req.user);
+      res.redirect('/');
     }
+  );
+
+  app.get('/auth/logout', (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+      }
+      res.redirect('/');
+    });
+  });
+} else {
+  // Provide fallback routes when OAuth is not configured
+  app.get('/auth/google', (req, res) => {
+    res.status(503).json({ 
+      error: 'Authentication not configured', 
+      message: 'Google OAuth credentials not found. Please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.' 
+    });
+  });
+
+  app.get('/auth/google/callback', (req, res) => {
+    res.redirect('/?error=auth_not_configured');
+  });
+
+  app.get('/auth/logout', (req, res) => {
     res.redirect('/');
   });
-});
+}
 
 app.get('/api/auth/me', (req: Request, res: Response) => {
   if (req.user) {

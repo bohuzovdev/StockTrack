@@ -13,56 +13,58 @@ export interface AuthenticatedRequest extends Request {
   logout?: (callback?: (err: any) => void) => void;
 }
 
-// In-memory user storage (replace with database later)
-const users = new Map<string, User>();
-const usersByGoogleId = new Map<string, User>();
+// In-memory user storage (replace with database in production)
+const usersByGoogleId = new Map<string, any>();
+const usersById = new Map<string, any>();
 
 // Debug: Check if environment variables are loaded
+const hasGoogleCredentials = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 console.log('🔧 Debug - GOOGLE_CLIENT_ID exists:', !!process.env.GOOGLE_CLIENT_ID);
 console.log('🔧 Debug - GOOGLE_CLIENT_SECRET exists:', !!process.env.GOOGLE_CLIENT_SECRET);
+console.log('🔧 Debug - Google OAuth enabled:', hasGoogleCredentials);
 
-// Google OAuth Strategy
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID || "",
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-  callbackURL: process.env.NODE_ENV === 'production' 
-    ? "https://your-domain.com/auth/google/callback"
-    : "http://localhost:3000/auth/google/callback"
-}, async (accessToken, refreshToken, profile, done) => {
-  try {
-    // Check if user already exists
-    let user = usersByGoogleId.get(profile.id);
-    
-    if (!user) {
-      // Create new user
-      user = {
-        id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        googleId: profile.id,
-        email: profile.emails?.[0]?.value || "",
-        name: profile.displayName || "",
-        picture: profile.photos?.[0]?.value,
-        createdAt: new Date(),
-        lastLoginAt: new Date()
-      };
+// Only configure Google OAuth if credentials are available
+if (hasGoogleCredentials) {
+  // Google OAuth Strategy
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID!,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    callbackURL: process.env.NODE_ENV === 'production' 
+      ? "https://your-domain.com/auth/google/callback"
+      : "http://localhost:3000/auth/google/callback"
+  }, async (accessToken, refreshToken, profile, done) => {
+    try {
+      // Check if user already exists
+      let user = usersByGoogleId.get(profile.id);
       
-      users.set(user.id, user);
-      usersByGoogleId.set(profile.id, user);
+      if (!user) {
+        // Create new user
+        user = {
+          id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          googleId: profile.id,
+          email: profile.emails?.[0]?.value || '',
+          name: profile.displayName || '',
+          picture: profile.photos?.[0]?.value || ''
+        };
+        
+        usersByGoogleId.set(profile.id, user);
+        usersById.set(user.id, user);
+        
+        console.log(`✅ New user created: ${user.name} (${user.email})`);
+      } else {
+        console.log(`🔄 User logged in: ${user.name} (${user.email})`);
+      }
       
-      console.log(`✅ New user created: ${user.name} (${user.email})`);
-    } else {
-      // Update last login
-      user.lastLoginAt = new Date();
-      users.set(user.id, user);
-      
-      console.log(`🔄 User logged in: ${user.name} (${user.email})`);
+      return done(null, user);
+    } catch (error) {
+      console.error('❌ Google OAuth error:', error);
+      return done(error, null);
     }
-    
-    return done(null, user);
-  } catch (error) {
-    console.error("❌ Authentication error:", error);
-    return done(error, undefined);
-  }
-}));
+  }));
+} else {
+  console.log('⚠️  Google OAuth not configured - authentication disabled');
+  console.log('💡 To enable authentication, set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables');
+}
 
 // Serialize user for session
 passport.serializeUser((user: any, done) => {
@@ -71,7 +73,7 @@ passport.serializeUser((user: any, done) => {
 
 // Deserialize user from session
 passport.deserializeUser((id: string, done) => {
-  const user = users.get(id);
+  const user = usersById.get(id);
   done(null, user || false);
 });
 
@@ -107,12 +109,15 @@ export const getCurrentUser = (req: AuthenticatedRequest): User | null => {
 
 // User management functions
 export const getUserById = (id: string): User | undefined => {
-  return users.get(id);
+  return usersById.get(id);
 };
 
 export const getAllUsers = (): User[] => {
-  return Array.from(users.values());
+  return Array.from(usersById.values());
 };
+
+// Export whether OAuth is configured
+export const isOAuthConfigured = hasGoogleCredentials;
 
 // Export passport for server setup
 export default passport; 
