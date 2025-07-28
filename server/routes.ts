@@ -29,6 +29,23 @@ const addUserContext = (req: any, res: any, next: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint - no authentication required
+  app.get("/health", (req, res) => {
+    res.status(200).json({
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "development"
+    });
+  });
+
+  // Simple root endpoint
+  app.get("/", (req, res) => {
+    res.status(200).json({
+      message: "PFT API Server",
+      status: "running",
+      timestamp: new Date().toISOString()
+    });
+  });
   
   // User API Token Management Routes
   app.post("/api/user/tokens", requireAuth, async (req, res) => {
