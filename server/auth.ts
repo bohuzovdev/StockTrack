@@ -18,21 +18,30 @@ const usersByGoogleId = new Map<string, any>();
 const usersById = new Map<string, any>();
 
 // Debug: Check if environment variables are loaded
-const hasGoogleCredentials = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+const hasGoogleCredentials = !!(
+  process.env.GOOGLE_CLIENT_ID && 
+  process.env.GOOGLE_CLIENT_SECRET && 
+  process.env.GOOGLE_CLIENT_ID.trim() !== '' && 
+  process.env.GOOGLE_CLIENT_SECRET.trim() !== ''
+);
 console.log('🔧 Debug - GOOGLE_CLIENT_ID exists:', !!process.env.GOOGLE_CLIENT_ID);
 console.log('🔧 Debug - GOOGLE_CLIENT_SECRET exists:', !!process.env.GOOGLE_CLIENT_SECRET);
+console.log('🔧 Debug - GOOGLE_CLIENT_ID value:', process.env.GOOGLE_CLIENT_ID ? '[SET]' : '[MISSING]');
+console.log('🔧 Debug - GOOGLE_CLIENT_SECRET value:', process.env.GOOGLE_CLIENT_SECRET ? '[SET]' : '[MISSING]');
 console.log('🔧 Debug - Google OAuth enabled:', hasGoogleCredentials);
 
 // Only configure Google OAuth if credentials are available
 if (hasGoogleCredentials) {
-  // Google OAuth Strategy
-  passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID!,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    callbackURL: process.env.NODE_ENV === 'production' 
-      ? "https://your-domain.com/auth/google/callback"
-      : "http://localhost:3000/auth/google/callback"
-  }, async (accessToken, refreshToken, profile, done) => {
+  try {
+    console.log('✅ Configuring Google OAuth strategy with valid credentials');
+    // Google OAuth Strategy
+    passport.use(new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      callbackURL: process.env.NODE_ENV === 'production' 
+        ? "https://your-domain.com/auth/google/callback"
+        : "http://localhost:3000/auth/google/callback"
+    }, async (accessToken, refreshToken, profile, done) => {
     try {
       // Check if user already exists
       let user = usersByGoogleId.get(profile.id);
@@ -61,6 +70,10 @@ if (hasGoogleCredentials) {
       return done(error, null);
     }
   }));
+  } catch (setupError) {
+    console.error('❌ Failed to configure Google OAuth strategy:', setupError);
+    console.log('⚠️  Google OAuth setup failed - authentication disabled');
+  }
 } else {
   console.log('⚠️  Google OAuth not configured - authentication disabled');
   console.log('💡 To enable authentication, set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables');
