@@ -2,11 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sidebar } from "@/components/ui/sidebar";
 import { PortfolioChart } from "@/components/portfolio-chart";
+import { apiRequest, createUserQueryKey } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 import type { InvestmentWithCurrentData } from "@shared/schema";
 
 export default function HistoricalData() {
+  const { user, isAuthenticated } = useAuth();
+  
   const { data: investments, isLoading } = useQuery<InvestmentWithCurrentData[]>({
-    queryKey: ["/api/investments"],
+    queryKey: createUserQueryKey(user?.id || null, ["investments"]),
+    queryFn: () => apiRequest("GET", "/api/investments"),
+    enabled: isAuthenticated,
   });
 
   const formatCurrency = (value: number) => {

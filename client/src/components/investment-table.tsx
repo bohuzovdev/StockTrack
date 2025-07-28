@@ -6,15 +6,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { RefreshCw, Edit, Trash2, Search } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, createUserQueryKey } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 import type { InvestmentWithCurrentData } from "@shared/schema";
 
 export function InvestmentTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
 
   const { data: investments, isLoading } = useQuery<InvestmentWithCurrentData[]>({
-    queryKey: ["/api/investments"],
+    queryKey: createUserQueryKey(user?.id || null, ["investments"]),
+    queryFn: () => apiRequest("GET", "/api/investments"),
+    enabled: isAuthenticated,
   });
 
   const deleteInvestmentMutation = useMutation({
@@ -26,8 +30,8 @@ export function InvestmentTable() {
         title: "Investment Deleted",
         description: "Investment has been removed from your portfolio.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/investments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/portfolio/summary"] });
+      queryClient.invalidateQueries({ queryKey: createUserQueryKey(user?.id || null, ["investments"]) });
+      queryClient.invalidateQueries({ queryKey: createUserQueryKey(user?.id || null, ["portfolio", "summary"]) });
     },
     onError: () => {
       toast({

@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useState } from "react";
+import { apiRequest, createUserQueryKey } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 import type { InvestmentWithCurrentData } from "@shared/schema";
 
 // Generate chart data based on actual investment dates
@@ -66,9 +68,12 @@ const generateHistoricalData = (investments: InvestmentWithCurrentData[]) => {
 
 export function PortfolioChart() {
   const [timeframe, setTimeframe] = useState("6M");
+  const { user, isAuthenticated } = useAuth();
   
   const { data: investments, isLoading } = useQuery<InvestmentWithCurrentData[]>({
-    queryKey: ["/api/investments"],
+    queryKey: createUserQueryKey(user?.id || null, ["investments"]),
+    queryFn: () => apiRequest("GET", "/api/investments"),
+    enabled: isAuthenticated,
   });
 
   const chartData = investments ? generateHistoricalData(investments) : [];

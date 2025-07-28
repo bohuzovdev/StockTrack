@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useState } from "react";
 import { TrendingUp, Calculator, Target } from "lucide-react";
+import { apiRequest, createUserQueryKey } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 import type { InvestmentWithCurrentData, PortfolioSummary } from "@shared/schema";
 
 // S&P 500 historical performance data (last 50 years: 1975-2025)
@@ -29,13 +31,18 @@ export function PortfolioForecast() {
   // Separate string states for input handling
   const [forecastYearsInput, setForecastYearsInput] = useState("10");
   const [monthlyContributionInput, setMonthlyContributionInput] = useState("0");
+  const { user, isAuthenticated } = useAuth();
 
   const { data: investments } = useQuery<InvestmentWithCurrentData[]>({
-    queryKey: ["/api/investments"],
+    queryKey: createUserQueryKey(user?.id || null, ["investments"]),
+    queryFn: () => apiRequest("GET", "/api/investments"),
+    enabled: isAuthenticated,
   });
 
   const { data: portfolio } = useQuery<PortfolioSummary>({
-    queryKey: ["/api/portfolio/summary"],
+    queryKey: createUserQueryKey(user?.id || null, ["portfolio", "summary"]),
+    queryFn: () => apiRequest("GET", "/api/portfolio/summary"),
+    enabled: isAuthenticated,
   });
 
   const generateForecastData = (): ForecastData[] => {
