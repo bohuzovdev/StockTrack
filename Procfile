@@ -1,1 +1,1 @@
-web: npm start 
+web: echo "Starting PFT server..." && NODE_ENV=production tsx server/index.ts 

@@ -1,6 +1,15 @@
 // Load environment variables first
 import dotenv from "dotenv";
+
 dotenv.config();
+
+// RAILWAY DEBUG: Log startup information immediately
+console.log("🚀 RAILWAY DEBUG: Starting PFT server...");
+console.log("🔧 NODE_ENV:", process.env.NODE_ENV);
+console.log("🔧 PORT:", process.env.PORT || "3000");
+console.log("🔧 GOOGLE_CLIENT_ID exists:", !!process.env.GOOGLE_CLIENT_ID);
+console.log("🔧 Working directory:", process.cwd());
+console.log("🔧 Railway timestamp:", new Date().toISOString());
 
 import express, { type Request, type Response } from "express";
 import { registerRoutes } from "./routes";
@@ -15,12 +24,13 @@ app.use(express.urlencoded({ extended: false }));
 
 // CRITICAL: Health check middleware BEFORE everything else
 app.use('/health', (req, res, next) => {
-  console.log("🚨 Pre-middleware health check hit");
+  console.log("🚨 RAILWAY HEALTH CHECK HIT - Pre-middleware");
   res.status(200).json({
     status: "healthy",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "development",
-    source: "pre-middleware"
+    source: "pre-middleware-railway-debug",
+    railway: true
   });
 });
 

@@ -2,13 +2,14 @@
   "name": "pft",
   "version": "1.0.0",
   "description": "Personal Finance Tracker - Portfolio management and banking integration platform",
-  "main": "index.js",
+  "main": "server/index.ts",
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "vite build",
     "start": "NODE_ENV=production tsx server/index.ts",
     "preview": "npm run build && npm run start",
-    "postinstall": "npm run build"
+    "postinstall": "npm run build",
+    "railway-start": "NODE_ENV=production tsx server/index.ts"
   },
   "keywords": [
     "finance",
