@@ -1,48 +1,179 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sidebar } from "@/components/ui/sidebar";
-import { PortfolioChart } from "@/components/portfolio-chart";
-import { PortfolioForecast } from "@/components/portfolio-forecast";
 import { InvestmentTable } from "@/components/investment-table";
-import { AddInvestmentModal } from "@/components/add-investment-modal";
-import { RefreshCw, TrendingUp, Wallet, DollarSign, Activity } from "lucide-react";
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
-import { apiRequest } from "@/lib/queryClient";
+import { PortfolioChart } from "@/components/portfolio-chart";
 import { WebSocketStatus } from "@/components/websocket-status";
 import { ThemeToggle } from "@/components/theme-toggle";
-import type { PortfolioSummary, MarketData } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { Sidebar } from "@/components/ui/sidebar";
+import { BarChart3, TrendingUp, RefreshCw, CreditCard, Activity, ExternalLink } from "lucide-react";
+import { apiRequest, queryClient, createUserQueryKey } from "@/lib/queryClient";
+import { SecureStorage } from "@/lib/crypto";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
+
+interface PortfolioSummary {
+  totalValue: number;
+  totalInvested: number;
+  totalGains: number;
+  totalGainsPercent: number;
+}
+
+interface MarketData {
+  symbol: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  lastUpdated?: string;
+}
+
+interface BankAccount {
+  id: string;
+  name: string;
+  balance: number;
+  currency: string;
+}
 
 export default function Dashboard() {
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [isBankDataLoading, setIsBankDataLoading] = useState(false);
   const { toast } = useToast();
+  const { user, isAuthenticated, clearUserData } = useAuth();
+  const [, setLocation] = useLocation();
+
+  // User-specific query keys
+  const portfolioQueryKey = createUserQueryKey(user?.id || null, ["portfolio", "summary"]);
+  const sp500QueryKey = createUserQueryKey(user?.id || null, ["market", "sp500"]);
 
   const { data: portfolioSummary, isLoading: summaryLoading } = useQuery<PortfolioSummary>({
-    queryKey: ["/api/portfolio/summary"],
+    queryKey: portfolioQueryKey,
+    queryFn: () => apiRequest("GET", "/api/portfolio/summary"),
+    enabled: isAuthenticated,
   });
 
   const { data: sp500Data, isLoading: sp500Loading } = useQuery<MarketData>({
-    queryKey: ["/api/market/sp500"],
+    queryKey: sp500QueryKey,
+    queryFn: () => apiRequest("GET", "/api/market/sp500"),
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  const handleRefreshData = async () => {
+  // Clear all data when user changes
+  useEffect(() => {
+    if (user) {
+      // User logged in, load their data
+      loadMonobankData();
+    } else {
+      // User logged out, clear all data
+      setBankAccounts([]);
+      setIsBankDataLoading(false);
+    }
+  }, [user?.id]); // Trigger when user ID changes
+
+  const loadMonobankData = async () => {
+    if (!user) return;
+    
     try {
-      await apiRequest("POST", "/api/market/refresh");
-      await queryClient.invalidateQueries({ queryKey: ["/api"] });
+      setIsBankDataLoading(true);
+      const savedToken = await SecureStorage.getItem('monobank_token');
+      if (savedToken) {
+        await fetchBankAccounts(savedToken);
+      }
+    } catch (error) {
+      console.error('Failed to load Monobank data:', error);
+      // Clear invalid token
+      await SecureStorage.removeItem('monobank_token');
+    } finally {
+      setIsBankDataLoading(false);
+    }
+  };
+
+  const fetchBankAccounts = async (token: string) => {
+    if (!user) return;
+
+    try {
+      const response = await fetch('/api/banking/accounts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ provider: 'monobank', token }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setBankAccounts(data.accounts || []);
+      } else if (response.status === 401) {
+        // Authentication error, clear data and redirect
+        await clearUserData();
+        window.location.href = '/auth/google';
+      } else {
+        // Invalid token or other error
+        console.error('Failed to fetch bank accounts:', response.status);
+        await SecureStorage.removeItem('monobank_token');
+        setBankAccounts([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch bank accounts:', error);
+      await SecureStorage.removeItem('monobank_token');
+      setBankAccounts([]);
+    }
+  };
+
+  const handleRefreshData = async () => {
+    if (!user) return;
+
+    try {
+      // Invalidate user-specific queries
+      await queryClient.invalidateQueries({ 
+        queryKey: ['user', user.id] 
+      });
+      
+      // Refresh Monobank data
+      await loadMonobankData();
+      
       toast({
         title: "Data Refreshed",
-        description: "Market data has been updated successfully.",
+        description: "Market and banking data have been updated successfully.",
       });
     } catch (error) {
       toast({
         title: "Refresh Failed",
-        description: "Unable to refresh market data. Please try again.",
+        description: "Unable to refresh data. Please try again.",
         variant: "destructive",
       });
     }
+  };
+
+  const getTotalBankBalance = () => {
+    if (bankAccounts.length === 0) return 0;
+    
+    // Convert all balances to UAH for display (Monobank amounts are in cents)
+    return bankAccounts.reduce((total, account) => {
+      if (account.currency === 'UAH') {
+        return total + account.balance;
+      }
+      // For other currencies, we'd normally need exchange rates
+      // For now, just convert USD to UAH using approximate rate
+      if (account.currency === 'USD') {
+        return total + (account.balance * 4100); // Approximate USD to UAH rate
+      }
+      if (account.currency === 'EUR') {
+        return total + (account.balance * 4400); // Approximate EUR to UAH rate
+      }
+      return total + account.balance; // Fallback
+    }, 0);
+  };
+
+  const formatBankCurrency = (amount: number) => {
+    return new Intl.NumberFormat('uk-UA', {
+      style: 'currency',
+      currency: 'UAH',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount / 100); // Monobank amounts are in cents
   };
 
   const formatCurrency = (value: number) => {
@@ -56,174 +187,165 @@ export default function Dashboard() {
     return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
   };
 
+  // Don't render dashboard if not authenticated
+  if (!isAuthenticated || !user) {
+    return null; // AuthProvider will handle showing login page
+  }
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      
       <main className="flex-1 ml-64 p-8">
         {/* Header */}
-        <header className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-2xl font-semibold">Portfolio Dashboard</h2>
-            <p className="text-muted-foreground mt-1">Track your investments and market performance</p>
+            <h2 className="text-3xl font-bold text-foreground">Dashboard</h2>
+            <p className="text-muted-foreground">
+              Welcome back, {user.name}! Here's your portfolio overview.
+            </p>
           </div>
-          
           <div className="flex items-center space-x-4">
-            <WebSocketStatus compact />
+            <WebSocketStatus />
             <ThemeToggle />
             <Button onClick={handleRefreshData} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
           </div>
-        </header>
+        </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Portfolio Value</p>
-                  <p className="text-2xl font-semibold mt-1">
-                    {summaryLoading ? "Loading..." : formatCurrency(portfolioSummary?.totalValue || 0)}
-                  </p>
-                </div>
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-full">
-                  <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Portfolio Value</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {summaryLoading ? "Loading..." : formatCurrency(portfolioSummary?.totalValue || 0)}
               </div>
-              <div className="flex items-center mt-4">
-                <span className={`text-sm font-medium ${portfolioSummary?.totalGainsPercent && portfolioSummary?.totalGainsPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {portfolioSummary ? formatPercent(portfolioSummary.totalGainsPercent) : "--"}
-                </span>
-                <span className="text-muted-foreground text-sm ml-2">vs invested</span>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                {portfolioSummary && formatPercent(portfolioSummary.totalGainsPercent)} from last month
+              </p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Invested</p>
-                  <p className="text-2xl font-semibold mt-1">
-                    {summaryLoading ? "Loading..." : formatCurrency(portfolioSummary?.totalInvested || 0)}
-                  </p>
-                </div>
-                <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-full">
-                  <DollarSign className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Invested</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {summaryLoading ? "Loading..." : formatCurrency(portfolioSummary?.totalInvested || 0)}
               </div>
-              <div className="flex items-center mt-4">
-                <span className="text-muted-foreground text-sm">Initial investment</span>
-              </div>
+              <p className="text-xs text-muted-foreground">Total amount invested</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Gains</p>
-                  <p className={`text-2xl font-semibold mt-1 ${portfolioSummary?.totalGains && portfolioSummary?.totalGains >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {summaryLoading ? "Loading..." : formatCurrency(portfolioSummary?.totalGains || 0)}
-                  </p>
-                </div>
-                <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
-                  <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Gains</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {summaryLoading ? "Loading..." : formatCurrency(portfolioSummary?.totalGains || 0)}
               </div>
-              <div className="flex items-center mt-4">
-                <span className={`text-sm font-medium ${portfolioSummary?.totalGainsPercent && portfolioSummary?.totalGainsPercent >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {portfolioSummary ? formatPercent(portfolioSummary.totalGainsPercent) : "--"}
-                </span>
-                <span className="text-muted-foreground text-sm ml-2">return</span>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                {portfolioSummary && formatPercent(portfolioSummary.totalGainsPercent)} overall return
+              </p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">S&P 500 Today</p>
-                  <p className="text-2xl font-semibold mt-1">
-                    {sp500Loading ? "Loading..." : sp500Data?.price.toFixed(2) || "--"}
-                  </p>
-                </div>
-                <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-full">
-                  <Activity className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">S&P 500 Today</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {sp500Loading ? "Loading..." : (sp500Data?.price?.toFixed(2) || "N/A")}
               </div>
-              <div className="flex items-center mt-4">
-                <span className={`text-sm font-medium ${sp500Data?.changePercent && sp500Data?.changePercent >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {sp500Data ? formatPercent(sp500Data.changePercent) : "--"}
-                </span>
-                <span className="text-muted-foreground text-sm ml-2">
-                  {sp500Data ? `${sp500Data.change >= 0 ? '+' : ''}${sp500Data.change.toFixed(2)} pts` : "--"}
-                </span>
+              <p className="text-xs text-muted-foreground">
+                {sp500Data && formatPercent(sp500Data.changePercent)} today
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Monobank Balance</CardTitle>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {isBankDataLoading ? "Loading..." : 
+                 bankAccounts.length > 0 ? formatBankCurrency(getTotalBankBalance()) : "Not Connected"}
               </div>
+              <p className="text-xs text-muted-foreground">
+                {bankAccounts.length > 0 ? `${bankAccounts.length} account${bankAccounts.length !== 1 ? 's' : ''}` : "Connect in Banking"}
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Portfolio Chart */}
-          <div className="lg:col-span-2">
-            <PortfolioChart />
-          </div>
-
-          {/* Quick Actions */}
+        {/* Charts and Tables */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <PortfolioChart />
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button 
-                variant="outline"
-                onClick={() => setIsAddModalOpen(true)}
-                className="w-full justify-between"
+                onClick={() => setLocation('/stocks')} 
+                className="w-full"
               >
-                <div className="flex items-center space-x-3">
-                  <span>Add Investment</span>
-                </div>
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Manage Stocks
               </Button>
-              
               <Button 
+                onClick={() => setLocation('/banking')} 
                 variant="outline" 
-                className="w-full justify-between"
-                onClick={handleRefreshData}
+                className="w-full"
               >
-                <div className="flex items-center space-x-3">
-                  <span>Refresh Data</span>
-                </div>
+                <CreditCard className="h-4 w-4 mr-2" />
+                Banking
               </Button>
-
-              {/* Market Status Widget */}
-              <div className="mt-6 p-4 bg-secondary rounded-lg border">
-                <div className="flex items-center space-x-2 mb-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium">Market Status</span>
-                </div>
-                <p className="text-sm text-muted-foreground">Markets are open</p>
-                <p className="text-xs text-muted-foreground mt-1">Next close: 4:00 PM EST</p>
-              </div>
+              <Button 
+                onClick={() => setLocation('/forecast')} 
+                variant="outline" 
+                className="w-full"
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                View Forecast
+              </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Portfolio Forecast */}
-        <PortfolioForecast />
-
         {/* Investment Table */}
-        <InvestmentTable />
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Investment Holdings</CardTitle>
+              <Button 
+                onClick={() => setLocation('/stocks')} 
+                variant="outline" 
+                size="sm"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View All
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <InvestmentTable />
+          </CardContent>
+        </Card>
       </main>
-
-      <AddInvestmentModal 
-        isOpen={isAddModalOpen} 
-        onClose={() => setIsAddModalOpen(false)} 
-      />
     </div>
   );
 }

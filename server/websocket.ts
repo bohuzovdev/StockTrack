@@ -1,210 +1,124 @@
 import { WebSocketServer, WebSocket } from 'ws';
-import { Server } from 'http';
+import type { MarketData } from '@shared/schema';
 import { storage } from './storage';
 
-interface WebSocketClient extends WebSocket {
-  id: string;
-  lastHeartbeat: number;
+interface WebSocketMessage {
+  type: 'market_update' | 'portfolio_update' | 'connection_status';
+  data?: any;
+  timestamp?: string;
 }
 
-// Rate limiting for API calls
-let lastApiCall = 0;
-const API_RATE_LIMIT = 15 * 60 * 1000; // 15 minutes between API calls
+let wss: WebSocketServer;
+let marketDataUpdateInterval: NodeJS.Timeout;
 
-let wsServer: WebSocketServer;
-const clients = new Set<WebSocketClient>();
+// Rate limiting for market data updates
+const MARKET_UPDATE_INTERVAL = 30000; // 30 seconds
+const MAX_CONNECTIONS = 100;
 
 export function setupWebSocket() {
-  // Create a separate WebSocket server on port 3001
-  const WS_PORT = 3001;
-  
-  wsServer = new WebSocketServer({ 
-    port: WS_PORT,
-    perMessageDeflate: false
-  });
+  try {
+    wss = new WebSocketServer({ 
+      port: 3001,
+      maxPayload: 16 * 1024 // 16KB max message size
+    });
 
-  console.log(`🔌 WebSocket server running on port ${WS_PORT}`);
+    console.log('🔌 WebSocket server running on port 3001');
 
-  wsServer.on('connection', (ws: WebSocketClient, req) => {
-    // Generate unique client ID
-    ws.id = Math.random().toString(36).substring(2, 15);
-    ws.lastHeartbeat = Date.now();
-    clients.add(ws);
-
-    console.log(`📱 Client ${ws.id} connected (${clients.size} total clients)`);
-
-    // Send welcome message
-    ws.send(JSON.stringify({
-      type: 'welcome',
-      message: 'Connected to StockTrack WebSocket',
-      clientId: ws.id,
-      timestamp: new Date().toISOString()
-    }));
-
-    // Handle incoming messages
-    ws.on('message', (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        console.log(`📨 Message from ${ws.id}:`, message.type);
-
-        switch (message.type) {
-          case 'ping':
-            ws.send(JSON.stringify({
-              type: 'pong',
-              timestamp: new Date().toISOString()
-            }));
-            ws.lastHeartbeat = Date.now();
-            break;
-          
-          case 'subscribe':
-            ws.send(JSON.stringify({
-              type: 'subscribed',
-              message: 'Subscribed to portfolio updates',
-              timestamp: new Date().toISOString()
-            }));
-            break;
-          
-          default:
-            console.log(`❓ Unknown message type: ${message.type}`);
-        }
-      } catch (error) {
-        console.error(`❌ Error parsing message from ${ws.id}:`, error);
+    wss.on('connection', (ws: WebSocket) => {
+      // Limit connections
+      if (wss.clients.size > MAX_CONNECTIONS) {
+        ws.close(1013, 'Server overloaded');
+        return;
       }
+
+      console.log('👤 New WebSocket connection established');
+      
+      // Send welcome message
+      ws.send(JSON.stringify({
+        type: 'connection_status',
+        data: {
+          status: 'connected',
+          message: 'Connected to PFT WebSocket',
+          timestamp: new Date().toISOString()
+        }
+      }));
+
+      ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+      });
+
+      ws.on('close', () => {
+        console.log('👤 WebSocket connection closed');
+      });
     });
 
-    // Handle client disconnect
-    ws.on('close', (code, reason) => {
-      clients.delete(ws);
-      console.log(`📱 Client ${ws.id} disconnected (${clients.size} remaining) - Code: ${code}, Reason: ${reason}`);
+    // Start periodic market data updates
+    startMarketDataUpdates();
+
+    wss.on('error', (error) => {
+      console.error('❌ WebSocket Server Error:', error);
     });
 
-    // Handle WebSocket errors
-    ws.on('error', (error) => {
-      console.error(`❌ WebSocket error for client ${ws.id}:`, error);
-      clients.delete(ws);
-    });
-  });
-
-  // Handle WebSocket server errors
-  wsServer.on('error', (error) => {
-    console.error('❌ WebSocket Server Error:', error);
-  });
-
-  // Start periodic updates
-  startPeriodicUpdates();
-  
-  return wsServer;
+  } catch (error) {
+    console.error('Failed to setup WebSocket server:', error);
+  }
 }
 
-async function startPeriodicUpdates() {
-  console.log('🔄 Started periodic market data updates with rate limiting');
-  
-  setInterval(async () => {
-    if (clients.size === 0) {
+function startMarketDataUpdates() {
+  marketDataUpdateInterval = setInterval(async () => {
+    if (wss.clients.size === 0) {
       console.log('📭 No active connections, skipping portfolio update');
       return;
     }
 
     try {
-      // Get fresh market data (with rate limiting)
-      const now = Date.now();
-      if (now - lastApiCall > API_RATE_LIMIT) {
-        console.log('📈 Fetching fresh market data for WebSocket clients');
-        // This will trigger fresh API calls in the storage layer
-        await storage.getMarketData('SPY');
-        lastApiCall = now;
-      }
-
-      // Get current portfolio data
-      const investments = await storage.getInvestments();
-      const summary = await storage.getPortfolioSummary();
-      const marketData = await storage.getMarketData('SPY');
+      // Get updated portfolio data
+      const portfolioData = await storage.getInvestmentsWithCurrentData();
+      
+      const message: WebSocketMessage = {
+        type: 'portfolio_update',
+        data: portfolioData,
+        timestamp: new Date().toISOString()
+      };
 
       // Broadcast to all connected clients
-      const updateData = {
-        type: 'portfolio_update',
-        data: {
-          investments,
-          summary,
-          marketData,
-          timestamp: new Date().toISOString()
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(message));
         }
-      };
+      });
 
-      broadcast(JSON.stringify(updateData));
-      console.log(`📡 Broadcast portfolio update to ${clients.size} clients`);
-
+      console.log(`📊 Portfolio update sent to ${wss.clients.size} client(s)`);
     } catch (error) {
-      console.error('❌ Error during periodic update:', error);
+      console.error('❌ Error updating portfolio data:', error);
     }
-  }, 30000); // Update every 30 seconds
+  }, MARKET_UPDATE_INTERVAL);
+
+  console.log('🔄 Started periodic market data updates with rate limiting');
 }
 
-function broadcast(message: string) {
-  const deadClients = new Set<WebSocketClient>();
-  
-  clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      try {
-        client.send(message);
-      } catch (error) {
-        console.error(`❌ Error sending to client ${client.id}:`, error);
-        deadClients.add(client);
-      }
-    } else {
-      deadClients.add(client);
-    }
-  });
+export function broadcastMarketUpdate(data: MarketData) {
+  if (!wss || wss.clients.size === 0) return;
 
-  // Clean up dead connections
-  deadClients.forEach(client => {
-    clients.delete(client);
-    console.log(`🧹 Cleaned up dead client ${client.id}`);
-  });
-}
-
-export function getWebSocketStatus() {
-  return {
-    enabled: true,
-    endpoint: 'ws://localhost:3001',
-    port: 3001,
-    connectedClients: clients.size,
-    rateLimit: {
-      lastApiCall: new Date(lastApiCall).toISOString(),
-      nextAllowedCall: new Date(lastApiCall + API_RATE_LIMIT).toISOString(),
-      remainingMs: Math.max(0, (lastApiCall + API_RATE_LIMIT) - Date.now())
-    }
+  const message: WebSocketMessage = {
+    type: 'market_update',
+    data,
+    timestamp: new Date().toISOString()
   };
+
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(message));
+    }
+  });
 }
 
-export function triggerManualUpdate() {
-  if (clients.size === 0) {
-    return { message: 'No connected clients to update' };
+export function closeWebSocket() {
+  if (marketDataUpdateInterval) {
+    clearInterval(marketDataUpdateInterval);
   }
-
-  // Force immediate update regardless of rate limit
-  setTimeout(async () => {
-    try {
-      const investments = await storage.getInvestments();
-      const summary = await storage.getPortfolioSummary();
-      const marketData = await storage.getMarketData('SPY');
-
-      const updateData = {
-        type: 'manual_update',
-        data: {
-          investments,
-          summary,
-          marketData,
-          timestamp: new Date().toISOString()
-        }
-      };
-
-      broadcast(JSON.stringify(updateData));
-      console.log(`📡 Manual update broadcast to ${clients.size} clients`);
-    } catch (error) {
-      console.error('❌ Error during manual update:', error);
-    }
-  }, 100);
-
-  return { message: `Manual update triggered for ${clients.size} clients` };
+  
+  if (wss) {
+    wss.close();
+  }
 } 

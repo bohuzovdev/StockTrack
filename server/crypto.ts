@@ -5,19 +5,6 @@
 
 import crypto from 'crypto';
 
-const ALGORITHM = 'aes-256-gcm';
-const KEY_LENGTH = 32;
-const IV_LENGTH = 16;
-const TAG_LENGTH = 16;
-const SALT_LENGTH = 32;
-
-/**
- * Generate encryption key from master secret
- */
-function deriveKey(password: string, salt: Buffer): Buffer {
-  return crypto.pbkdf2Sync(password, salt, 100000, KEY_LENGTH, 'sha256');
-}
-
 /**
  * Get master encryption key from environment
  */
@@ -38,23 +25,26 @@ function getMasterKey(): string {
  */
 export function encryptServerData(data: string): string {
   try {
+    console.log('🔐 Starting server encryption...');
     const masterKey = getMasterKey();
     const salt = crypto.randomBytes(16);
     const key = crypto.pbkdf2Sync(masterKey, salt, 10000, 32, 'sha256');
     const iv = crypto.randomBytes(16);
     
-    const cipher = crypto.createCipher('aes-256-cbc', key);
+    // Use createCipheriv (not the deprecated createCipher)
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
     let encrypted = cipher.update(data, 'utf8', 'hex');
     encrypted += cipher.final('hex');
     
     // Combine salt, iv, and encrypted data
-    const combined = salt.toString('hex') + ':' + iv.toString('hex') + ':' + encrypted;
+    const combined = `${salt.toString('hex')}:${iv.toString('hex')}:${encrypted}`;
+    const result = Buffer.from(combined, 'utf8').toString('base64');
     
-    return Buffer.from(combined).toString('base64');
+    console.log('✅ Server encryption successful');
+    return result;
   } catch (error) {
-    console.error('Server encryption failed:', error);
-    // Fallback to simple base64 for development
-    return Buffer.from(data).toString('base64');
+    console.error('❌ Server encryption failed:', error);
+    throw new Error('Failed to encrypt server data');
   }
 }
 
@@ -63,11 +53,23 @@ export function encryptServerData(data: string): string {
  */
 export function decryptServerData(encryptedData: string): string {
   try {
+    console.log('🔓 Starting server decryption...');
     const masterKey = getMasterKey();
-    const combined = Buffer.from(encryptedData, 'base64').toString('utf8');
+    
+    // Handle base64 encoded data
+    let combined: string;
+    try {
+      combined = Buffer.from(encryptedData, 'base64').toString('utf8');
+    } catch (error) {
+      // If base64 decoding fails, try using the data as-is
+      combined = encryptedData;
+    }
+    
     const parts = combined.split(':');
     
     if (parts.length !== 3) {
+      console.error('❌ Invalid encrypted data format. Expected 3 parts, got:', parts.length);
+      console.error('❌ Data parts:', parts);
       throw new Error('Invalid encrypted data format');
     }
     
@@ -77,19 +79,18 @@ export function decryptServerData(encryptedData: string): string {
     
     const key = crypto.pbkdf2Sync(masterKey, salt, 10000, 32, 'sha256');
     
-    const decipher = crypto.createDecipher('aes-256-cbc', key);
+    // Use createDecipheriv (not the deprecated createDecipher)
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     
+    console.log('✅ Server decryption successful');
     return decrypted;
   } catch (error) {
-    console.error('Server decryption failed:', error);
-    // Fallback to base64 for development
-    try {
-      return Buffer.from(encryptedData, 'base64').toString('utf8');
-    } catch {
-      throw new Error('Failed to decrypt server data');
-    }
+    console.error('❌ Decryption error:', error);
+    console.error('❌ Encrypted data length:', encryptedData?.length);
+    console.error('❌ Encrypted data preview:', encryptedData?.substring(0, 50) + '...');
+    throw error;
   }
 }
 
@@ -125,11 +126,11 @@ export class SecureEnv {
     return value;
   }
   
-  static set(key: string, value: string, encrypt: boolean = false): void {
+  static set(key: string, value: string, encrypt = true): void {
     if (encrypt) {
       const encrypted = encryptServerData(value);
       process.env[key] = encrypted;
-      this.cache.set(key, value); // Cache decrypted value
+      this.cache.set(key, value); // Cache the decrypted value
     } else {
       process.env[key] = value;
       this.cache.set(key, value);

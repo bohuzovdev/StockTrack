@@ -70,16 +70,74 @@ export const insertMarketDataSchema = createInsertSchema(marketData).omit({
   lastUpdated: true,
 });
 
-export type Investment = typeof investments.$inferSelect;
+// User Schema for Google OAuth
+export interface User {
+  id: string;
+  googleId: string;
+  email: string;
+  name: string;
+  picture?: string;
+  createdAt: Date;
+  lastLoginAt: Date;
+}
+
+// User API Tokens - encrypted storage for user-specific API keys
+export interface UserApiToken {
+  id: string;
+  userId: string;
+  provider: 'monobank' | 'binance' | 'binance_key' | 'binance_secret' | 'alpha_vantage'; // extensible for future APIs
+  encryptedToken: string;
+  tokenName?: string; // e.g., "My Trading Account"
+  isActive: boolean;
+  createdAt: Date;
+  lastUsedAt?: Date;
+}
+
+// Crypto Assets - from Binance API
+export interface CryptoAsset {
+  asset: string; // BTC, ETH, USDT, etc.
+  free: string; // Available balance
+  locked: string; // Locked in orders
+  total: number; // Total balance (free + locked)
+  usdValue?: number; // USD equivalent value
+}
+
+export interface CryptoPortfolio {
+  userId: string;
+  assets: CryptoAsset[];
+  totalUsdValue: number;
+  lastUpdated: string;
+  provider: 'binance'; // Can extend for other exchanges
+}
+
+// User Crypto Accounts - for future multi-exchange support
+export interface UserCryptoAccount {
+  id: string;
+  userId: string;
+  provider: 'binance';
+  accountName: string; // e.g., "Main Trading Account"
+  apiKeyId: string; // Reference to encrypted API key
+  isActive: boolean;
+  createdAt: Date;
+  lastSyncAt?: Date;
+}
+
+// Updated Investment type to include userId (extends the DB schema)
+export type Investment = typeof investments.$inferSelect & {
+  userId?: string; // Will be added to DB schema
+};
 export type InsertInvestment = z.infer<typeof insertInvestmentSchema>;
 export type MarketData = typeof marketData.$inferSelect;
 export type InsertMarketData = z.infer<typeof insertMarketDataSchema>;
 
+// Updated PortfolioSummary to be user-specific
 export interface PortfolioSummary {
+  userId?: string; // Will be user-specific after auth
   totalValue: number;
   totalInvested: number;
   totalGains: number;
   totalGainsPercent: number;
+  lastUpdated?: Date;
 }
 
 export interface InvestmentWithCurrentData extends Investment {
@@ -89,4 +147,62 @@ export interface InvestmentWithCurrentData extends Investment {
   gainLoss: number;
   gainLossPercent: number;
   companyName?: string;
+}
+
+// User-specific Banking Account
+export interface UserBankAccount {
+  id: string;
+  userId: string;
+  provider: string; // 'monobank', future: 'privatbank', etc.
+  accountId: string; // Provider's account ID
+  accountName: string;
+  accountType: string;
+  currency: string;
+  isActive: boolean;
+  lastSyncedAt?: Date;
+  createdAt: Date;
+}
+
+// User-specific Banking Transaction
+export interface UserBankTransaction {
+  id: string;
+  userId: string;
+  userBankAccountId: string;
+  providerTransactionId: string;
+  time: number; // Unix timestamp
+  description: string;
+  amount: number;
+  currency: string;
+  balance: number;
+  category?: string;
+  tags?: string[];
+  notes?: string;
+  createdAt: Date;
+}
+
+// Auth Session
+export interface AuthSession {
+  id: string;
+  userId: string;
+  sessionToken: string;
+  expires: Date;
+  createdAt: Date;
+}
+
+// API Response wrapper with user context
+export interface AuthenticatedApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+// Auth request types
+export interface AuthRequest extends Request {
+  user?: User;
+  session?: AuthSession;
 }

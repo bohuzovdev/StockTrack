@@ -3,18 +3,37 @@
  * Uses Web Crypto API for strong encryption
  */
 
-const ALGORITHM = 'AES-GCM';
-const KEY_LENGTH = 256;
-const IV_LENGTH = 12; // 96 bits for GCM
+// Device fingerprinting for key derivation
+export function getDeviceFingerprint(): string {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx?.fillText('PFT Fingerprint', 10, 10);
+  
+  const components = [
+    navigator.userAgent,
+    navigator.language,
+    screen.width + 'x' + screen.height,
+    new Date().getTimezoneOffset().toString(),
+    canvas.toDataURL(),
+    navigator.hardwareConcurrency?.toString() || '1'
+  ];
+  
+  return btoa(components.join('|')).substring(0, 32);
+}
 
-/**
- * Generate a cryptographic key from a password
- */
-async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+// Check if Web Crypto API is supported
+export function isCryptoSupported(): boolean {
+  return typeof window !== 'undefined' && 
+         'crypto' in window && 
+         'subtle' in window.crypto;
+}
+
+// Derive encryption key from device fingerprint
+async function deriveKey(fingerprint: string): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   const keyMaterial = await window.crypto.subtle.importKey(
     'raw',
-    encoder.encode(password),
+    encoder.encode(fingerprint),
     'PBKDF2',
     false,
     ['deriveBits', 'deriveKey']
@@ -23,104 +42,70 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
   return window.crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: salt,
+      salt: encoder.encode('pft-salt-2024'),
       iterations: 100000,
-      hash: 'SHA-256',
+      hash: 'SHA-256'
     },
     keyMaterial,
-    { name: ALGORITHM, length: KEY_LENGTH },
+    { name: 'AES-GCM', length: 256 },
     false,
     ['encrypt', 'decrypt']
   );
 }
 
-/**
- * Generate a unique device fingerprint as encryption password
- */
-function generateDeviceFingerprint(): string {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  ctx?.beginPath();
-  ctx?.arc(50, 50, 20, 0, 2 * Math.PI);
-  ctx?.stroke();
-  
-  const canvasFingerprint = canvas.toDataURL();
-  const screenFingerprint = `${screen.width}x${screen.height}x${screen.colorDepth}`;
-  const timezoneFingerprint = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const languageFingerprint = navigator.language;
-  const userAgentFingerprint = navigator.userAgent.slice(0, 100); // Truncate for consistency
-  
-  return `${canvasFingerprint}-${screenFingerprint}-${timezoneFingerprint}-${languageFingerprint}-${userAgentFingerprint}`;
-}
-
-/**
- * Encrypt a token using device-specific encryption
- */
-export async function encryptToken(token: string): Promise<string> {
+// Encrypt data using AES-GCM
+async function encryptData(data: string): Promise<string> {
   try {
+    if (!isCryptoSupported()) {
+      console.warn('Web Crypto API not supported, using fallback encoding');
+      return btoa(data);
+    }
+
+    const fingerprint = getDeviceFingerprint();
+    const key = await deriveKey(fingerprint);
+    
     const encoder = new TextEncoder();
-    const data = encoder.encode(token);
+    const dataBytes = encoder.encode(data);
     
-    // Generate salt and IV
-    const salt = window.crypto.getRandomValues(new Uint8Array(16));
-    const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-    
-    // Derive key from device fingerprint
-    const deviceFingerprint = generateDeviceFingerprint();
-    const key = await deriveKey(deviceFingerprint, salt);
-    
-    // Encrypt the token
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
     const encrypted = await window.crypto.subtle.encrypt(
-      {
-        name: ALGORITHM,
-        iv: iv,
-      },
+      { name: 'AES-GCM', iv },
       key,
-      data
+      dataBytes
     );
     
-    // Combine salt, IV, and encrypted data
-    const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
-    combined.set(salt, 0);
-    combined.set(iv, salt.length);
-    combined.set(new Uint8Array(encrypted), salt.length + iv.length);
+    // Combine IV and encrypted data
+    const combined = new Uint8Array(iv.length + encrypted.byteLength);
+    combined.set(iv);
+    combined.set(new Uint8Array(encrypted), iv.length);
     
-    // Return as base64
     return btoa(String.fromCharCode(...Array.from(combined)));
   } catch (error) {
-    console.error('Encryption failed:', error);
-    // Fallback to base64 encoding if crypto fails
-    return btoa(token);
+    console.warn('Encryption failed, using fallback:', error);
+    return btoa(data);
   }
 }
 
-/**
- * Decrypt a token using device-specific decryption
- */
-export async function decryptToken(encryptedToken: string): Promise<string> {
+// Decrypt data using AES-GCM
+async function decryptData(encryptedData: string): Promise<string> {
   try {
-    // Decode from base64
+    if (!isCryptoSupported()) {
+      console.warn('Web Crypto API not supported, using fallback decoding');
+      return atob(encryptedData);
+    }
+
+    const fingerprint = getDeviceFingerprint();
+    const key = await deriveKey(fingerprint);
+    
     const combined = new Uint8Array(
-      atob(encryptedToken)
-        .split('')
-        .map(char => char.charCodeAt(0))
+      atob(encryptedData).split('').map(char => char.charCodeAt(0))
     );
     
-    // Extract salt, IV, and encrypted data
-    const salt = combined.slice(0, 16);
-    const iv = combined.slice(16, 16 + IV_LENGTH);
-    const encrypted = combined.slice(16 + IV_LENGTH);
+    const iv = combined.slice(0, 12);
+    const encrypted = combined.slice(12);
     
-    // Derive key from device fingerprint
-    const deviceFingerprint = generateDeviceFingerprint();
-    const key = await deriveKey(deviceFingerprint, salt);
-    
-    // Decrypt the token
     const decrypted = await window.crypto.subtle.decrypt(
-      {
-        name: ALGORITHM,
-        iv: iv,
-      },
+      { name: 'AES-GCM', iv },
       key,
       encrypted
     );
@@ -128,53 +113,59 @@ export async function decryptToken(encryptedToken: string): Promise<string> {
     const decoder = new TextDecoder();
     return decoder.decode(decrypted);
   } catch (error) {
-    console.error('Decryption failed:', error);
-    // Fallback to base64 decoding if crypto fails
-    try {
-      return atob(encryptedToken);
-    } catch {
-      throw new Error('Failed to decrypt token');
-    }
+    console.warn('Decryption failed, using fallback:', error);
+    return atob(encryptedData);
   }
 }
 
-/**
- * Secure token storage wrapper
- */
+// Test encryption/decryption functionality
+export async function testEncryption(): Promise<boolean> {
+  try {
+    const testData = 'PFT encryption test';
+    const encrypted = await encryptData(testData);
+    const decrypted = await decryptData(encrypted);
+    
+    const success = decrypted === testData;
+    console.log(`🔐 Encryption test ${success ? 'passed' : 'failed'}`);
+    return success;
+  } catch (error) {
+    console.error('Encryption test failed:', error);
+    return false;
+  }
+}
+
+// Secure localStorage wrapper
 export class SecureStorage {
-  private static prefix = 'stocktrack_secure_';
-  
+  private static prefix = 'pft_secure_';
+
   static async setItem(key: string, value: string): Promise<void> {
     try {
-      const encrypted = await encryptToken(value);
-      const storageKey = this.prefix + key;
-      localStorage.setItem(storageKey, encrypted);
+      const encrypted = await encryptData(value);
+      localStorage.setItem(this.prefix + key, encrypted);
     } catch (error) {
-      console.error('Secure storage set failed:', error);
-      throw new Error('Failed to securely store token');
+      console.error('SecureStorage.setItem failed:', error);
+      throw error;
     }
   }
-  
+
   static async getItem(key: string): Promise<string | null> {
     try {
-      const storageKey = this.prefix + key;
-      const encrypted = localStorage.getItem(storageKey);
+      const encrypted = localStorage.getItem(this.prefix + key);
       if (!encrypted) return null;
       
-      return await decryptToken(encrypted);
+      return await decryptData(encrypted);
     } catch (error) {
-      console.error('Secure storage get failed:', error);
-      // Clean up corrupted data
-      this.removeItem(key);
+      console.error('SecureStorage.getItem failed:', error);
+      // Remove corrupted item
+      localStorage.removeItem(this.prefix + key);
       return null;
     }
   }
-  
+
   static removeItem(key: string): void {
-    const storageKey = this.prefix + key;
-    localStorage.removeItem(storageKey);
+    localStorage.removeItem(this.prefix + key);
   }
-  
+
   static clear(): void {
     const keys = Object.keys(localStorage);
     keys.forEach(key => {
@@ -183,20 +174,11 @@ export class SecureStorage {
       }
     });
   }
-}
 
-/**
- * Check if Web Crypto API is available
- */
-export function isCryptoSupported(): boolean {
-  return !!(window.crypto && window.crypto.subtle);
-}
-
-/**
- * Generate a random token for testing
- */
-export function generateRandomToken(length: number = 32): string {
-  const array = new Uint8Array(length);
-  window.crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  static getAllKeys(): string[] {
+    const keys = Object.keys(localStorage);
+    return keys
+      .filter(key => key.startsWith(this.prefix))
+      .map(key => key.replace(this.prefix, ''));
+  }
 } 

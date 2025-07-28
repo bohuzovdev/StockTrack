@@ -68,7 +68,7 @@ export class MonobankProvider implements BankingProvider {
         method: 'GET',
         headers: {
           'X-Token': token,
-          'User-Agent': 'StockTrack/1.0',
+          'User-Agent': 'PFT/1.0',
         },
       });
 
@@ -113,7 +113,7 @@ export class MonobankProvider implements BankingProvider {
         method: 'GET',
         headers: {
           'X-Token': token,
-          'User-Agent': 'StockTrack/1.0',
+          'User-Agent': 'PFT/1.0',
         },
       });
 
@@ -169,7 +169,7 @@ export class MonobankProvider implements BankingProvider {
         method: 'GET',
         headers: {
           'X-Token': token,
-          'User-Agent': 'StockTrack/1.0',
+          'User-Agent': 'PFT/1.0',
         },
       });
 

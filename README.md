@@ -1,295 +1,279 @@
-# 📈 StockTrack
+# 📈 PFT
 
-A comprehensive financial portfolio management application with advanced security features and banking integration.
+> **Personal Finance Tracker - Portfolio Management & Banking Integration Platform**
 
-![StockTrack](https://img.shields.io/badge/StockTrack-v1.0-brightgreen)
-![Security](https://img.shields.io/badge/Security-Enterprise%20Grade-red)
-![Banking](https://img.shields.io/badge/Banking-Monobank%20Integrated-blue)
+![PFT](https://img.shields.io/badge/PFT-v1.0-brightgreen)
+![Node.js](https://img.shields.io/badge/Node.js-20%2B-green)
+![React](https://img.shields.io/badge/React-18-blue)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
 
-## ✨ Features
+A comprehensive personal finance tracking application with **real-time portfolio management**, **Ukrainian banking integration**, and **Google OAuth authentication**. Track your investments, connect your Monobank account, and manage your financial data securely.
 
-### 🛡️ **Enterprise-Grade Security**
-- **AES-256-GCM Encryption** - Client-side token encryption using Web Crypto API
-- **Device-Specific Binding** - Tokens work only on your device
-- **Rate Limiting** - API abuse prevention
-- **Secure Logging** - Tokens always hashed, never exposed
-- **Token Strength Assessment** - Automatic security validation
-- **Environment Encryption** - Production-ready encrypted environment variables
+## ✨ Key Features
 
-### 💰 **Portfolio Management**
-- **Investment Tracking** - Add and manage your investment portfolio
-- **Real-Time Market Data** - Live stock prices via Alpha Vantage API
-- **Portfolio Performance** - Track portfolio value vs invested amount
-- **Purchase Date Tracking** - Historical investment entry management
-- **S&P 500 Integration** - Market benchmark comparison
+### 🎯 Core Features
+- **Real-time Portfolio Tracking** - S&P 500 investments with live market data
+- **Monobank Integration** - Secure Ukrainian banking data sync
+- **Multi-user Support** - Google OAuth with user-isolated data
+- **Investment Management** - Track stocks, crypto, and portfolio performance
+- **Dark/Light Theme** - System-aware theming
+- **Responsive Design** - Works on desktop, tablet, and mobile
 
-### 🏦 **Banking Integration**
-- **Monobank Support** - Connect your Ukrainian Monobank account
-- **Beautiful Account Cards** - Visual account representation with masked PAN
-- **Transaction History** - Last 30 days with detailed categorization
-- **Balance Visibility Toggle** - Privacy protection
-- **Cashback Tracking** - Automatic cashback calculation display
-- **Secure Token Storage** - Encrypted local storage
+### 🔐 Security Features
+- **End-to-End Encryption** - Client and server-side data protection
+- **Secure Token Storage** - Device fingerprinting and AES-256 encryption
+- **User Data Isolation** - Each user's data is completely separate
+- **Rate Limiting** - API protection and WebSocket throttling
 
-### 🎨 **Modern UI/UX**
-- **Dark/Light Theme** - Automatic system detection with manual toggle
-- **Responsive Design** - Mobile-first approach
-- **Beautiful Charts** - Portfolio performance visualization using Recharts
-- **Real-Time Updates** - WebSocket integration for live data
-- **Loading States** - Smooth user experience with loading indicators
+### 🏦 Banking Integration
+- **Monobank API Support** - Real account balances and transactions
+- **Future-Ready** - Prepared for Open Banking (PSD2) in Ukraine 2025
+- **Transaction History** - View and categorize your spending
+- **Balance Monitoring** - Real-time account balance updates
 
-### 🔄 **Real-Time Features**
-- **WebSocket Integration** - Separate port (3001) for real-time updates
-- **Live Market Data** - Automatic periodic updates with rate limiting  
-- **Portfolio Sync** - Real-time portfolio value calculations
-- **Connection Status** - Visual WebSocket connection indicators
+### 🚀 Future Features
+- **Binance Integration** - Cryptocurrency portfolio tracking
+- **Expense Categorization** - AI-powered spending insights
+- **Budget Planning** - Financial goal setting and tracking
+- **Investment Recommendations** - Personalized portfolio suggestions
+
+## 🛠️ Tech Stack
+
+**Frontend:**
+- React 18 + TypeScript
+- Tailwind CSS + Radix UI
+- React Query (TanStack Query)
+- Wouter (React Router)
+- Recharts (Data Visualization)
+
+**Backend:**
+- Node.js + Express + TypeScript
+- Drizzle ORM + PostgreSQL
+- WebSocket (Real-time updates)
+- Passport.js (Google OAuth)
+- Advanced Encryption (AES-256)
+
+**APIs & Integrations:**
+- Alpha Vantage (Stock Market Data)
+- Monobank API (Ukrainian Banking)
+- Google OAuth 2.0
+- WebSocket for real-time updates
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+ 
 - npm or yarn
-- (Optional) Alpha Vantage API key for real market data
-- (Optional) Monobank API token for banking features
+- Google OAuth credentials
+- Alpha Vantage API key
+- Monobank API token (optional)
 
 ### Installation
 
-1. **Clone the repository**
 ```bash
-git clone https://github.com/YOUR_USERNAME/StockTrack.git
-cd StockTrack
-```
-
-2. **Install dependencies**
-```bash
+git clone https://github.com/YOUR_USERNAME/PFT.git
+cd PFT
 npm install
 ```
 
-3. **Environment Setup** (Optional)
-```bash
-# Copy example environment file
-cp .env.example .env
+### Environment Setup
 
-# Add your API keys
-ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here
-ENCRYPTION_MASTER_KEY=your_64_character_hex_key_here
-```
+Create a `.env` file in the root directory:
 
-4. **Generate Master Key** (For production)
-```bash
-openssl rand -hex 32
-```
-
-5. **Start the development server**
-```bash
-npm run dev
-```
-
-6. **Open your browser**
-```
-http://localhost:3000
-```
-
-## 🏗️ Architecture
-
-### **Tech Stack**
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
-- **Backend**: Node.js, Express.js, TypeScript
-- **Database**: In-memory storage (Drizzle ORM schemas ready for PostgreSQL)
-- **Security**: Web Crypto API, Node.js crypto module
-- **Real-time**: WebSocket (ws library)
-- **Charts**: Recharts
-- **Forms**: React Hook Form
-- **State Management**: React Query (TanStack Query)
-
-### **Project Structure**
-```
-StockTrack/
-├── client/                 # Frontend React application
-│   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/         # Application pages
-│   │   ├── lib/           # Utilities and crypto functions
-│   │   └── hooks/         # Custom React hooks
-├── server/                # Backend Node.js application
-│   ├── index.ts          # Server entry point
-│   ├── routes.ts         # API endpoints
-│   ├── websocket.ts      # WebSocket server
-│   ├── banking.ts        # Banking integration
-│   └── crypto.ts         # Server-side encryption
-├── shared/               # Shared schemas and types
-└── scripts/             # Utility scripts and tests
-```
-
-## 🔐 Security Features
-
-### **Client-Side Security**
-- **AES-256-GCM** encryption with 100,000 PBKDF2 iterations
-- **Device fingerprinting** for encryption key derivation
-- **Secure localStorage** replacement with automatic cleanup
-- **Fallback encryption** for older browsers
-
-### **Server-Side Security**  
-- **Token validation** with strength assessment (weak/medium/strong)
-- **Rate limiting**: 10 auth attempts per 5 minutes
-- **Secure logging** with SHA-256 token hashing
-- **Environment variable encryption** for production deployment
-
-### **Banking Security**
-- **Encrypted token storage** - Never stored in plain text
-- **Connection validation** - Real-time token strength feedback
-- **Automatic disconnect** - Complete token removal capability
-- **Audit logging** - All banking operations logged securely
-
-## 🏦 Banking Integration
-
-### **Supported Banks**
-- ✅ **Monobank** (Ukraine) - Full integration
-- 🔜 **Open Banking** (August 2025+) - Future integration
-
-### **Features**
-- **Account Management** - Multiple account support
-- **Transaction History** - 30-day transaction retrieval
-- **Balance Display** - Real-time balance with privacy toggle
-- **Cashback Tracking** - Automatic cashback calculation
-- **Security Assessment** - Token strength validation
-
-### **Getting Your Monobank Token**
-1. Open Monobank mobile app
-2. Go to Settings → API
-3. Generate new personal token
-4. Copy token to StockTrack
-
-## 📊 Portfolio Features
-
-### **Investment Tracking**
-- Add investments with purchase date and amount
-- Historical entry tracking (entry date vs purchase date)
-- Real-time portfolio value calculation
-- Performance vs invested amount comparison
-
-### **Market Data**
-- Real-time stock prices via Alpha Vantage API
-- S&P 500 index tracking
-- Automatic data caching and fallback
-- Rate limit protection
-
-### **Charts & Visualization**
-- Portfolio performance over time
-- Investment allocation breakdown
-- Forecast projections with custom parameters
-- Responsive chart design for all devices
-
-## 🛠️ Development
-
-### **Available Scripts**
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm run type-check   # TypeScript type checking
-```
-
-### **Testing Security**
-```bash
-# Test server-side encryption
-node scripts/test-encryption.js
-
-# Test client-side crypto (open in browser)
-open scripts/test-client-crypto.html
-```
-
-### **Environment Encryption**
-```bash
-# Encrypt environment variables for production
-node scripts/encrypt-env.js ALPHA_VANTAGE_API_KEY your_api_key
-```
-
-## 🔧 Configuration
-
-### **Environment Variables**
-```bash
-# Optional - for real market data
-ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
-
-# Optional - for production encryption
-ENCRYPTION_MASTER_KEY=your_64_character_hex_key
-
-# Optional - custom server port  
+```env
+# Server Configuration
 PORT=3000
+NODE_ENV=development
+
+# Google OAuth (Required)
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+SESSION_SECRET=your_session_secret_here
+
+# Alpha Vantage API (Required)
+ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here
+
+# Encryption (Required)
+ENCRYPTION_MASTER_KEY=your_32_character_encryption_key_here
+
+# Database (Optional - uses in-memory by default)
+DATABASE_URL=postgresql://user:password@localhost:5432/pft
 ```
 
-### **WebSocket Configuration**
-- **Main Server**: Port 3000 (configurable via PORT env var)
-- **WebSocket Server**: Port 3001 (separate for stability)
-- **Rate Limiting**: 1 request per minute for market data
-- **Auto-reconnection**: Exponential backoff client-side
+### Development Server
+
+```bash
+# Start both frontend and backend
+npm run dev
+
+# Frontend will be available at: http://localhost:3000
+# WebSocket server runs on: ws://localhost:3001
+```
+
+### Production Build
+
+```bash
+npm run build
+npm start
+```
+
+## 📁 Project Structure
+
+```
+PFT/
+├── client/                  # React frontend
+│   ├── src/
+│   │   ├── components/      # Reusable UI components
+│   │   ├── pages/          # Route components
+│   │   ├── contexts/       # React contexts (Auth, Theme)
+│   │   ├── hooks/          # Custom React hooks
+│   │   └── lib/            # Utilities and configurations
+│   └── index.html
+├── server/                  # Node.js backend
+│   ├── routes.ts           # API endpoints
+│   ├── auth.ts             # Google OAuth setup
+│   ├── banking.ts          # Banking API integration
+│   ├── storage.ts          # Data storage layer
+│   ├── websocket.ts        # Real-time WebSocket server
+│   └── crypto.ts           # Server-side encryption
+├── shared/                  # Shared TypeScript types
+│   └── schema.ts           # Zod schemas and types
+├── ios/                    # iOS React Native app
+└── README.md
+```
+
+## 🏦 Banking Integration Setup
+
+### Monobank Setup (Ukraine)
+
+1. **Get Your Personal Token:**
+   - Visit: https://api.monobank.ua/
+   - Request personal token via Telegram bot
+   - Wait for approval (usually 1-2 hours)
+
+2. **Test Your Token:**
+   ```bash
+   curl -X GET "https://api.monobank.ua/personal/client-info" \
+        -H "X-Token: YOUR_TOKEN_HERE"
+   ```
+
+3. **Add to PFT:**
+   - Login to your PFT account
+   - Go to Banking section
+   - Enter your Monobank token
+   - Your accounts and transactions will sync automatically
+
+4. **Copy token to PFT**
+   - Open PFT application
+   - Navigate to Banking section
+   - Enter your Monobank token
+   - Your accounts will sync automatically
+
+### Future Banking Support
+
+**Open Banking (PSD2) - Coming August 2025:**
+- Universal bank support across Ukraine
+- Standardized API access
+- Enhanced security with OAuth 2.0
+- Real-time transaction notifications
+
+**Current Limitations:**
+- Only Monobank supported
+- Personal tokens only (no business accounts)
+- Rate limited to 60 requests/hour
+- Ukraine-based accounts only
+
+## 🔐 Security & Privacy
+
+### Client-Side Security
+- **Device Fingerprinting** - Unique encryption keys per device
+- **Web Crypto API** - Browser-native encryption
+- **Secure Storage** - Encrypted localStorage wrapper
+- **Token Validation** - Client-side token strength assessment
+
+### Server-Side Security  
+- **AES-256 Encryption** - Military-grade data protection
+- **PBKDF2 Key Derivation** - 100,000 iterations
+- **Rate Limiting** - API and WebSocket protection
+- **Secure Headers** - CORS, CSP, and security headers
+- **Input Validation** - Zod schema validation
+
+### Data Isolation
+- **User-Specific Queries** - Complete data separation
+- **Cache Isolation** - User-specific query keys
+- **Session Management** - Secure session handling
+- **Token Encryption** - Per-user encrypted storage
 
 ## 📱 Mobile Support
 
-StockTrack is fully responsive and works beautifully on:
-- 📱 **Mobile phones** (iOS/Android)
-- 📟 **Tablets** (iPad/Android tablets)  
-- 💻 **Desktop** (Windows/Mac/Linux)
-- 🌐 **All modern browsers** (Chrome, Firefox, Safari, Edge)
-
-## 🌟 Future Enhancements
-
-### **Planned Features**
-- [ ] **Open Banking Integration** (August 2025+)
-- [ ] **Multiple Currency Support**
-- [ ] **Advanced Portfolio Analytics** 
-- [ ] **Export/Import Functionality**
-- [ ] **Mobile PWA Support**
-- [ ] **Multi-user Authentication**
-- [ ] **Cloud Data Synchronization**
-
-### **Banking Expansion**
-- [ ] **PrivatBank** (Ukraine)
-- [ ] **PUMB** (Ukraine)  
-- [ ] **European Open Banking** APIs
-- [ ] **Transaction Categorization** with AI
-- [ ] **Expense Analytics** and budgeting
-
-## 📄 Documentation
-
-- 📖 **[Security Documentation](SECURITY.md)** - Comprehensive security guide
-- 🏦 **[Banking Integration](BANKING_INTEGRATION.md)** - Banking setup guide
-- 🔐 **[Encryption Guide](scripts/test-client-crypto.html)** - Interactive crypto testing
+PFT is fully responsive and works beautifully on:
+- **Desktop** (Chrome, Firefox, Safari, Edge)
+- **Tablet** (iPad, Android tablets)
+- **Mobile** (iPhone, Android phones)
+- **iOS App** (Native React Native application available)
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-## 📝 License
+### Development Workflow
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+### Reporting Issues
+- Use GitHub Issues for bug reports
+- Include environment details
+- Provide reproduction steps
+- Add screenshots if helpful
+
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- **Alpha Vantage** - Stock market data API
+- **Alpha Vantage** - Real-time stock market data
 - **Monobank** - Ukrainian banking API
-- **Shadcn/ui** - Beautiful UI components
+- **Google** - OAuth authentication
+- **Radix UI** - Accessible component library
 - **Tailwind CSS** - Utility-first CSS framework
-- **Recharts** - React charting library
 
-## 📞 Support
+## ✨ Roadmap
 
-If you have questions or need help:
+### Q1 2024
+- ✅ Core portfolio tracking
+- ✅ Monobank integration
+- ✅ Google OAuth authentication
+- ✅ Real-time WebSocket updates
 
-1. **Check the documentation** in the `/docs` folder
-2. **Review security features** in `SECURITY.md`
-3. **Test encryption** with provided test scripts
-4. **Open an issue** for bugs or feature requests
+### Q2 2024
+- 🔄 Binance cryptocurrency integration
+- 🔄 Advanced portfolio analytics
+- 🔄 Mobile application improvements
+- 🔄 Transaction categorization
+
+### Q3 2024
+- 📋 Open Banking preparation
+- 📋 Advanced security features
+- 📋 Multi-currency support
+- 📋 Investment recommendations
+
+### Q4 2024
+- 📋 AI-powered insights
+- 📋 Tax reporting features
+- 📋 Premium subscription model
+- 📋 API for third-party integrations
 
 ---
 
-**⚡ Built with modern technologies for a secure financial future! ⚡**
+<div align="center">
 
----
+**PFT - Personal Finance Tracker**  
+*Empowering your financial journey with secure, real-time portfolio management*
 
-*Last updated: December 2024* 
+[📈 Live Demo](https://your-demo-url.com) • [📚 Documentation](https://docs.your-site.com) • [💬 Discord](https://discord.gg/your-invite)
+
+</div> 
