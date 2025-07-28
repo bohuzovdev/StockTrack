@@ -1,1 +1,1 @@
-web: echo "Starting PFT server..." && NODE_ENV=production tsx server/index.ts 
+web: NODE_ENV=production tsx server/index.ts 
