@@ -6,7 +6,6 @@ import { type Server } from "http";
 import { nanoid } from "nanoid";
 import { fileURLToPath } from "url";
 import react from "@vitejs/plugin-react";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 const viteLogger = createLogger();
 
@@ -36,7 +35,6 @@ export async function setupVite(app: Express, server: Server) {
   const viteConfig = {
     plugins: [
       react(),
-      runtimeErrorOverlay(),
     ],
     resolve: {
       alias: {
