@@ -29,7 +29,7 @@ const addUserContext = (req: any, res: any, next: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Health check endpoint - no authentication required
+  // Health check endpoint - no authentication required - force rebuild
   app.get("/health", (req, res) => {
     res.status(200).json({
       status: "healthy",
