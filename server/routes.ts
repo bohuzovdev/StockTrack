@@ -29,10 +29,22 @@ const addUserContext = (req: any, res: any, next: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Health check endpoint - no authentication required - force rebuild
+  // CRITICAL: Health check endpoint MUST be first - no authentication required
   app.get("/health", (req, res) => {
+    console.log("🏥 Health endpoint hit - returning JSON");
     res.status(200).json({
-      status: "healthy",
+      status: "healthy",  
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "development",
+      app: "PFT"
+    });
+  });
+
+  // Test endpoint to verify API routing works
+  app.get("/api/test", (req, res) => {
+    console.log("🧪 Test endpoint hit");
+    res.status(200).json({
+      message: "API routing works!",
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || "development"
     });

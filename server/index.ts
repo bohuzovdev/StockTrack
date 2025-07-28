@@ -13,6 +13,17 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// CRITICAL: Health check middleware BEFORE everything else
+app.use('/health', (req, res, next) => {
+  console.log("🚨 Pre-middleware health check hit");
+  res.status(200).json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+    source: "pre-middleware"
+  });
+});
+
 // Session configuration
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
