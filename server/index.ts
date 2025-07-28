@@ -68,32 +68,52 @@ app.get('/api/auth/me', (req: Request, res: Response) => {
 });
 
 (async () => {
-  // Only clear tokens if explicitly requested via environment variable
-  // This prevents losing tokens on every server restart during development
-  if (process.env.CLEAR_TOKENS_ON_STARTUP === 'true') {
-    const { userTokenService } = await import("./user-tokens");
-    await userTokenService.clearAllTokensOnStartup();
-    console.log('🧹 Token clearing was explicitly requested via CLEAR_TOKENS_ON_STARTUP=true');
-  }
-  
-  // Setup WebSocket server
-  setupWebSocket();
-  log("WebSocket server initialized on separate port with rate limiting");
-  
-  // Register API routes and get server
-  const server = await registerRoutes(app);
+  try {
+    // Only clear tokens if explicitly requested via environment variable
+    // This prevents losing tokens on every server restart during development
+    if (process.env.CLEAR_TOKENS_ON_STARTUP === 'true') {
+      const { userTokenService } = await import("./user-tokens");
+      await userTokenService.clearAllTokensOnStartup();
+      console.log('🧹 Token clearing was explicitly requested via CLEAR_TOKENS_ON_STARTUP=true');
+    }
+    
+    // Setup WebSocket server
+    setupWebSocket();
+    log("WebSocket server initialized on separate port with rate limiting");
+    
+    // Register API routes and get server
+    const server = await registerRoutes(app);
+    log("API routes registered successfully");
 
-  // Set up Vite or static serving
-  if (process.env.NODE_ENV === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
+    // Set up Vite or static serving
+    if (process.env.NODE_ENV === "development") {
+      await setupVite(app, server);
+      log("Vite development server configured");
+    } else {
+      serveStatic(app);
+      log("Static file serving configured");
+    }
 
-  // Start server
-  const port = parseInt(process.env.PORT || '3000', 10);
-  const host = process.env.NODE_ENV === 'development' ? '127.0.0.1' : '0.0.0.0';
-  server.listen(port, host, () => {
-    log(`serving on port ${port}`);
-  });
+    // Start server
+    const port = parseInt(process.env.PORT || '3000', 10);
+    const host = process.env.NODE_ENV === 'development' ? '127.0.0.1' : '0.0.0.0';
+    
+    server.listen(port, host, () => {
+      log(`🚀 Server running on ${host}:${port} in ${process.env.NODE_ENV || 'development'} mode`);
+      log(`💚 Health check available at: http://${host}:${port}/health`);
+    });
+    
+    // Handle graceful shutdown
+    process.on('SIGTERM', () => {
+      log('🛑 SIGTERM received, shutting down gracefully');
+      server.close(() => {
+        log('✅ Server closed');
+        process.exit(0);
+      });
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
 })();

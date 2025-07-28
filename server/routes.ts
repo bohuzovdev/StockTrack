@@ -38,8 +38,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Simple root endpoint
-  app.get("/", (req, res) => {
+  // API status endpoint - only in development or at /api/status
+  app.get("/api/status", (req, res) => {
     res.status(200).json({
       message: "PFT API Server",
       status: "running",
