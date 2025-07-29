@@ -8,7 +8,6 @@
     "build": "vite build",
     "start": "NODE_ENV=production tsx server/index.ts",
     "preview": "npm run build && npm run start",
-    "postinstall": "npm run build",
     "railway-start": "NODE_ENV=production tsx server/index.ts"
   },
   "keywords": [
