@@ -3,16 +3,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// RAILWAY DEBUG: Log startup information immediately
-console.log("🚀 RAILWAY DEBUG: Starting PFT server...");
-console.log("🐳 DOCKER: Container starting...");
-console.log("🔧 NODE_ENV:", process.env.NODE_ENV);
-console.log("🔧 PORT:", process.env.PORT || "3000");
-console.log("🔧 GOOGLE_CLIENT_ID exists:", !!process.env.GOOGLE_CLIENT_ID);
-console.log("🔧 Working directory:", process.cwd());
-console.log("🔧 Railway timestamp:", new Date().toISOString());
-console.log("🐳 Docker deployment with explicit container control");
-
 import express, { type Request, type Response } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -26,13 +16,10 @@ app.use(express.urlencoded({ extended: false }));
 
 // CRITICAL: Health check middleware BEFORE everything else
 app.use('/health', (req, res, next) => {
-  console.log("🚨 RAILWAY HEALTH CHECK HIT - Pre-middleware");
   res.status(200).json({
     status: "healthy",
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || "development",
-    source: "pre-middleware-railway-debug",
-    railway: true
+    environment: process.env.NODE_ENV || "development"
   });
 });
 
@@ -51,45 +38,12 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Auth routes - only if OAuth is configured
+// Only configure OAuth if credentials are provided
 if (isOAuthConfigured) {
-  app.get('/auth/google', 
-    passport.authenticate('google', { scope: ['profile', 'email'] })
-  );
-
-  app.get('/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/' }),
-    (req, res) => {
-      // Successful authentication
-      console.log('🎉 User authenticated:', req.user);
-      res.redirect('/');
-    }
-  );
-
-  app.get('/auth/logout', (req, res) => {
-    req.logout((err) => {
-      if (err) {
-        console.error('Logout error:', err);
-      }
-      res.redirect('/');
-    });
-  });
+  console.log('✅ Google OAuth configured successfully');
 } else {
-  // Provide fallback routes when OAuth is not configured
-  app.get('/auth/google', (req, res) => {
-    res.status(503).json({ 
-      error: 'Authentication not configured', 
-      message: 'Google OAuth credentials not found. Please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.' 
-    });
-  });
-
-  app.get('/auth/google/callback', (req, res) => {
-    res.redirect('/?error=auth_not_configured');
-  });
-
-  app.get('/auth/logout', (req, res) => {
-    res.redirect('/');
-  });
+  console.log('⚠️ Google OAuth not configured - authentication disabled');
+  console.log('💡 To enable authentication, set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables');
 }
 
 app.get('/api/auth/me', (req: Request, res: Response) => {
@@ -140,8 +94,6 @@ app.get('/api/auth/me', (req: Request, res: Response) => {
     server.listen(port, host, () => {
       log(`🚀 Server running on ${host}:${port} in ${process.env.NODE_ENV || 'development'} mode`);
       log(`💚 Health check available at: http://${host}:${port}/health`);
-      log(`🌐 Railway URL: https://pft.railway.app`);
-      log(`📊 Environment variables loaded: ${Object.keys(process.env).length}`);
     });
     
     // Handle graceful shutdown

@@ -6,8 +6,13 @@
 ![Node.js](https://img.shields.io/badge/Node.js-20%2B-green)
 ![React](https://img.shields.io/badge/React-18-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+![Railway](https://img.shields.io/badge/Deployed-Railway-blueviolet)
 
 A comprehensive personal finance tracking application with **real-time portfolio management**, **Ukrainian banking integration**, and **Google OAuth authentication**. Track your investments, connect your Monobank account, and manage your financial data securely.
+
+## 🚀 **Live Demo**
+
+**🌐 Production App:** [https://stocktrack-production.up.railway.app](https://stocktrack-production.up.railway.app)
 
 ## ✨ Key Features
 
@@ -274,6 +279,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **PFT - Personal Finance Tracker**  
 *Empowering your financial journey with secure, real-time portfolio management*
 
-[📈 Live Demo](https://your-demo-url.com) • [📚 Documentation](https://docs.your-site.com) • [💬 Discord](https://discord.gg/your-invite)
+[📈 Live Demo](https://stocktrack-production.up.railway.app) • [📚 Documentation](https://github.com/bohuzovdev/StockTrack) • [🚀 Deploy on Railway](https://railway.app)
 
 </div> 

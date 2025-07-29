@@ -147,3 +147,4 @@ usr/
 var/
 tmp/# Token cache (should not be committed)
 .tokens-cache.json
+server.log
