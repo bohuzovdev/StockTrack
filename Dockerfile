@@ -1,5 +1,31 @@
-# Use official Node.js runtime as base image
-FROM node:18-alpine
+# Multi-stage build for better Vite handling
+FROM node:18-alpine AS builder
+
+# Set working directory for build
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install ALL dependencies (including dev dependencies for build)
+RUN npm install
+
+# Copy all source files
+COPY . .
+
+# Debug: Show directory structure before build
+RUN echo "=== Directory structure ===" && ls -la
+RUN echo "=== Client directory ===" && ls -la client/
+RUN echo "=== Vite config ===" && cat vite.config.ts
+
+# Build the application
+RUN npm run build
+
+# Debug: Show build output
+RUN echo "=== Build output ===" && ls -la client/dist/
+
+# Production stage
+FROM node:18-alpine AS production
 
 # Install curl for health checks
 RUN apk add --no-cache curl
@@ -7,39 +33,20 @@ RUN apk add --no-cache curl
 # Set working directory
 WORKDIR /app
 
-# Copy package files first for better Docker layer caching
+# Copy package files
 COPY package*.json ./
 
-# Install ALL dependencies (including dev dependencies for build)
-RUN npm install
+# Install only production dependencies
+RUN npm ci --only=production
 
-# Copy project files in the correct order
-COPY vite.config.ts ./
-COPY tsconfig.json ./
-COPY tailwind.config.ts ./
-COPY postcss.config.js ./
-COPY components.json ./
-COPY drizzle.config.ts ./
+# Copy built application from builder stage
+COPY --from=builder /app/client/dist ./client/dist
+COPY --from=builder /app/server ./server
+COPY --from=builder /app/shared ./shared
+COPY --from=builder /app/vite.config.ts ./
+COPY --from=builder /app/tsconfig.json ./
 
-# Copy source directories
-COPY client/ ./client/
-COPY server/ ./server/
-COPY shared/ ./shared/
-
-# Verify the client directory structure exists
-RUN echo "=== Checking client directory ===" && ls -la client/
-RUN echo "=== Checking if index.html exists ===" && ls -la client/index.html
-
-# Build the client (Vite expects client/index.html to exist)
-RUN npm run build
-
-# Verify build output
-RUN echo "=== Checking build output ===" && ls -la client/dist/
-
-# Remove dev dependencies after build to reduce image size
-RUN npm prune --production
-
-# Expose port (Railway will override this)
+# Expose port
 EXPOSE 3000
 
 # Set production environment
