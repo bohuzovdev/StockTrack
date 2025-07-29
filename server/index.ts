@@ -38,12 +38,50 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Only configure OAuth if credentials are provided
+// Configure OAuth routes if credentials are provided
 if (isOAuthConfigured) {
   console.log('✅ Google OAuth configured successfully');
+  
+  // Google OAuth routes
+  app.get('/auth/google', 
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+  );
+
+  app.get('/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/' }),
+    (req, res) => {
+      // Successful authentication
+      res.redirect('/');
+    }
+  );
+
+  app.get('/auth/logout', (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+      }
+      res.redirect('/');
+    });
+  });
 } else {
   console.log('⚠️ Google OAuth not configured - authentication disabled');
   console.log('💡 To enable authentication, set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables');
+  
+  // Provide fallback routes when OAuth is not configured
+  app.get('/auth/google', (req, res) => {
+    res.status(503).json({ 
+      error: 'Authentication not configured', 
+      message: 'Google OAuth credentials not found. Please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.' 
+    });
+  });
+
+  app.get('/auth/google/callback', (req, res) => {
+    res.redirect('/?error=auth_not_configured');
+  });
+
+  app.get('/auth/logout', (req, res) => {
+    res.redirect('/');
+  });
 }
 
 app.get('/api/auth/me', (req: Request, res: Response) => {
