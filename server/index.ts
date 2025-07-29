@@ -5,11 +5,13 @@ dotenv.config();
 
 // RAILWAY DEBUG: Log startup information immediately
 console.log("🚀 RAILWAY DEBUG: Starting PFT server...");
+console.log("🐳 DOCKER: Container starting...");
 console.log("🔧 NODE_ENV:", process.env.NODE_ENV);
 console.log("🔧 PORT:", process.env.PORT || "3000");
 console.log("🔧 GOOGLE_CLIENT_ID exists:", !!process.env.GOOGLE_CLIENT_ID);
 console.log("🔧 Working directory:", process.cwd());
 console.log("🔧 Railway timestamp:", new Date().toISOString());
+console.log("🐳 Docker deployment with explicit container control");
 
 import express, { type Request, type Response } from "express";
 import { registerRoutes } from "./routes";
