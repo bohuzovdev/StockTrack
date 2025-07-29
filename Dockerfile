@@ -7,19 +7,36 @@ RUN apk add --no-cache curl
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better Docker layer caching
 COPY package*.json ./
 
 # Install ALL dependencies (including dev dependencies for build)
 RUN npm install
 
-# Copy source code
-COPY . .
+# Copy project files in the correct order
+COPY vite.config.ts ./
+COPY tsconfig.json ./
+COPY tailwind.config.ts ./
+COPY postcss.config.js ./
+COPY components.json ./
+COPY drizzle.config.ts ./
 
-# Build the client
+# Copy source directories
+COPY client/ ./client/
+COPY server/ ./server/
+COPY shared/ ./shared/
+
+# Verify the client directory structure exists
+RUN echo "=== Checking client directory ===" && ls -la client/
+RUN echo "=== Checking if index.html exists ===" && ls -la client/index.html
+
+# Build the client (Vite expects client/index.html to exist)
 RUN npm run build
 
-# Remove dev dependencies after build
+# Verify build output
+RUN echo "=== Checking build output ===" && ls -la client/dist/
+
+# Remove dev dependencies after build to reduce image size
 RUN npm prune --production
 
 # Expose port (Railway will override this)
