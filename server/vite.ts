@@ -66,15 +66,29 @@ export async function setupVite(app: Express, server: Server) {
       return next();
     }
 
-         try {
-       const url = req.originalUrl;
-       let template = await fs.promises.readFile(
-         path.resolve(__dirname, "..", "client", "index.html"),
-         "utf-8",
-       );
-       template = await vite.transformIndexHtml(url, template);
-       res.status(200).set({ "Content-Type": "text/html" }).end(template);
+    try {
+      const url = req.originalUrl;
+      console.log(`🔄 Vite processing: ${url}`);
+      
+      let template = await fs.promises.readFile(
+        path.resolve(__dirname, "..", "client", "index.html"),
+        "utf-8",
+      );
+      
+      console.log(`📄 Template read successfully, transforming...`);
+      
+      // Add timeout to prevent hanging
+      const transformPromise = vite.transformIndexHtml(url, template);
+      const timeoutPromise = new Promise<string>((_, reject) => 
+        setTimeout(() => reject(new Error('Vite transform timeout')), 10000)
+      );
+      
+      template = await Promise.race([transformPromise, timeoutPromise]) as string;
+      console.log(`✅ Template transformed successfully`);
+      
+      res.status(200).set({ "Content-Type": "text/html" }).end(template);
     } catch (e) {
+      console.error(`❌ Vite transform error for ${req.originalUrl}:`, e);
       if (e instanceof Error) {
         vite.ssrFixStacktrace(e);
         console.error(e.stack);
