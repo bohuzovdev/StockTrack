@@ -48,7 +48,8 @@ export async function apiRequest(method: string, url: string, data?: any) {
   if (response.status === 401) {
     // Clear any cached data and redirect to login
     queryClient.clear();
-    window.location.href = '/auth/google';
+    console.log('🔒 Authentication required - redirecting to Google OAuth...');
+    window.location.replace('/auth/google');
     throw new Error('Authentication required');
   }
 

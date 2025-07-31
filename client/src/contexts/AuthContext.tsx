@@ -134,8 +134,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const login = () => {
-    // Redirect to Google OAuth
-    window.location.href = '/auth/google';
+    console.log('🔑 Login button clicked - redirecting to Google OAuth...');
+    // Force full page redirect to Google OAuth (bypasses client-side routing)
+    window.location.replace('/auth/google');
   };
 
   const logout = async () => {
