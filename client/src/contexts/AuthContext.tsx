@@ -113,7 +113,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setPreviousUserId(null);
         }
       } else {
-        // Authentication failed
+        // Authentication failed - redirect to login for 401 errors
+        if (response.status === 401) {
+          console.log('🔒 No authentication session found - showing login page');
+          setUser(null);
+          setPreviousUserId(null);
+          return; // Don't redirect automatically, let LoginPage show
+        }
+        
         if (previousUserId) {
           console.log('❌ Auth failed, clearing data...');
           await clearUserData();
@@ -135,8 +142,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = () => {
     console.log('🔑 Login button clicked - redirecting to Google OAuth...');
+    console.log('🌍 Current URL:', window.location.href);
+    console.log('🎯 Redirecting to:', '/auth/google');
     // Force full page redirect to Google OAuth (bypasses client-side routing)
-    window.location.replace('/auth/google');
+    try {
+      window.location.replace('/auth/google');
+    } catch (error) {
+      console.error('❌ Redirect failed:', error);
+      // Fallback
+      window.location.href = '/auth/google';
+    }
   };
 
   const logout = async () => {
